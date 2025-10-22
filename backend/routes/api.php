@@ -10,6 +10,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/sales/orders', [SalespersonController::class, 'getOrders']);
 Route::post('/sales/order/{id}', [SalespersonController::class, 'treatOrder']);
+Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/sales/notifications', [SalespersonController::class, 'getNotifications']);
 Route::get('/orders', [OrderController::class, 'index']);
 Route::post('/orders', [OrderController::class, 'store']);

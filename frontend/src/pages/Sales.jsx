@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import ProductsSection from "../components/ProductsSection";
+import OrdersSection from "../components/OrdersSection";
+import NotificationsSection from "../components/NotificationsSections";
+
 
 const Sales = () => {
   const [activePage, setActivePage] = useState("products"); // default section
@@ -75,17 +78,13 @@ const Sales = () => {
   );
 };
 
-// ✅ Placeholder components for now
 
-
-
-
-const OrdersSection = () => (
+/* const OrdersSection = () => (
   <div className="text-gray-700">Orders Handling UI coming soon...</div>
-);
+); */
 
-const NotificationsSection = () => (
+/* const NotificationsSection = () => (
   <div className="text-gray-700">Notifications display coming soon...</div>
-);
+);  */
 
 export default Sales;

@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\Notification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -29,69 +30,94 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'items'           => 'required|array',
+            'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity'   => 'required|integer|min:1',
-            'payment_method'  => 'required|in:card,delivery',
-            'address'         => 'required|string',
-            'total_price'     => 'required|numeric',
+            'items.*.quantity' => 'required|integer|min:1',
+            'payment_method' => 'required|in:card,delivery',
+            'address' => 'required|string|max:255',
+            'total_price' => 'required|numeric|min:0',
+            'phone' => 'required|string|max:20',
         ]);
 
-        // Create Order
-        $order = Order::create([
-            'user_id'        => Auth::id() ?? $request->user_id,
-            'payment_method' => $validated['payment_method'],
-            'status'         => $validated['payment_method'] === 'card' ? 'paid' : 'on delivery',
-            'total_price'    => $validated['total_price'],
-            'address'        => $validated['address'],
-        ]);
+        try {
+            DB::beginTransaction();
 
-        // Create Order Items
-        foreach ($validated['items'] as $item) {
-            $product = Product::find($item['product_id']);
-            if ($product) {
+            $userId = Auth::id() ?? $request->user_id;
+
+            // Create Order
+            $order = Order::create([
+                'user_id' => $userId,
+                'payment_method' => $validated['payment_method'],
+                'status' => $validated['payment_method'] === 'card' ? 'paid' : 'on delivery',
+                'total_price' => $validated['total_price'],
+                'address' => $validated['address'],
+                'phone' => $validated['phone'],
+            ]);
+
+            // Create Order Items & reduce stock
+            foreach ($validated['items'] as $item) {
+                $product = Product::findOrFail($item['product_id']);
+
+                if ($product->quantity < $item['quantity']) {
+                    throw new \Exception("Not enough stock for {$product->name}");
+                }
+
                 OrderItem::create([
-                    'order_id'   => $order->id,
+                    'order_id' => $order->id,
                     'product_id' => $product->id,
-                    'quantity'   => $item['quantity'],
-                    'price'      => $product->price,
+                    'quantity' => $item['quantity'],
+                    'price' => $product->price,
                 ]);
+
+                $product->decrement('quantity', $item['quantity']);
             }
+
+            // Send notification to admin/salesperson
+            Notification::create([
+                'user_id' => 1, // You can later replace with dynamic salesperson assignment
+                'order_id' => $order->id,
+                'title' => 'New Order Placed',
+                'message' => 'A new order has been placed and needs processing.',
+                'type' => 'order_update',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Order placed successfully',
+                'order' => $order->load('items.product'),
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error creating order: ' . $e->getMessage(),
+            ], 500);
         }
-
-        // Send notification to salesperson/admin
-        Notification::create([
-            'user_id' => 1, // assuming 1 is admin/salesperson for now
-            'order_id' => $order->id,
-            'title' => 'New Order Placed',
-            'message' => 'A new order has been placed and needs processing.',
-            'type' => 'order_update',
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Order placed successfully',
-            'order' => $order->load('items.product'),
-        ], 201);
     }
 
-    // 🚚 3️⃣ Salesperson updates delivery details
+    // 🚚 3️⃣ Salesperson assigns delivery details
     public function assignDelivery(Request $request, $id)
     {
         $validated = $request->validate([
             'delivery_person' => 'required|string|max:255',
-            'delivery_phone'  => 'required|string|max:20',
+            'delivery_phone' => 'required|string|max:20',
         ]);
 
         $order = Order::findOrFail($id);
-        $order->update($validated);
+        $order->update([
+            'delivery_person' => $validated['delivery_person'],
+            'delivery_phone' => $validated['delivery_phone'],
+            'status' => 'on delivery',
+        ]);
 
         // Notify customer
         Notification::create([
             'user_id' => $order->user_id,
             'order_id' => $order->id,
-            'title' => 'Your order is on the way',
-            'message' => 'Your order is now being delivered by ' . $validated['delivery_person'] . '.',
+            'title' => 'Order Shipped',
+            'message' => "Your order is now being delivered by {$validated['delivery_person']}.",
             'type' => 'order_update',
         ]);
 
@@ -113,7 +139,7 @@ class OrderController extends Controller
         ], 200);
     }
 
-    // ✅ 5️⃣ Update order status (like paid / delivered)
+    // ✅ 5️⃣ Update order status (paid, completed, cancelled)
     public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([
@@ -123,19 +149,33 @@ class OrderController extends Controller
         $order = Order::findOrFail($id);
         $order->update(['status' => $validated['status']]);
 
-        // Notify customer about update
+        // Notify customer
         Notification::create([
             'user_id' => $order->user_id,
             'order_id' => $order->id,
             'title' => 'Order Status Updated',
-            'message' => 'Your order status has been updated to: ' . $validated['status'],
+            'message' => "Your order status has been updated to: {$validated['status']}.",
             'type' => 'order_update',
         ]);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Order status updated',
+            'message' => 'Order status updated successfully',
             'order' => $order,
+        ], 200);
+    }
+
+    // 🧍 6️⃣ Get all orders for a specific user (Customer Order History)
+    public function userOrders($userId)
+    {
+        $orders = Order::with('items.product')
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'orders' => $orders,
         ], 200);
     }
 }
