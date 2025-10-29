@@ -69,7 +69,7 @@ const Login = () => {
       }
     } catch (err) {
       console.error("Unexpected error:", err);
-      setError("Network error, check if Laravel server is running");
+      setError("Network error, check if Laravel server is running or Xampp is ON");
     } finally {
       setLoading(false); // 🔹 hide spinner
     }

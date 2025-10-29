@@ -81,6 +81,7 @@ const Customer = () => {
       payment_method:
         checkoutData.paymentMethod === "Pay Now" ? "card" : "delivery",
       address: checkoutData.address,
+      phone_number: checkoutData.phone,
       total_price: cart.reduce(
         (sum, item) => sum + item.price * item.quantity,
         0
@@ -89,11 +90,16 @@ const Customer = () => {
 
     console.log("🟢 Sending order payload:", orderData);
 
-    const res = await fetch("http://127.0.0.1:8000/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(orderData),
-    });
+  const res = await fetch("http://127.0.0.1:8000/api/orders", {
+    method: "POST",
+    credentials: 'include',
+    headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+    },
+    body: JSON.stringify(orderData),
+});
 
     const text = await res.text();
     let data = null;

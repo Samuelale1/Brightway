@@ -22,6 +22,7 @@ return new class extends Migration
             $table->decimal('total_price', 10, 2)->default(0);
             $table->string('payment_method')->default('pay_on_delivery'); // pay_on_delivery or pay_now
             $table->string('status')->default('pending'); // pending, confirmed, delivered, cancelled
+            
 
             // Delivery info
             $table->string('delivery_address')->nullable();

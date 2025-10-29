@@ -9,16 +9,37 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\Notification;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
     // 🧾 1️⃣ Get all orders (Admin & Salesperson)
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Order::with(['user', 'items.product'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = Order::with(['user', 'items.product'])
+            ->orderBy('created_at', 'desc');
+
+        // 🟢 Filter examples (optional)
+        if ($request->filter === 'pending') {
+            $query->where(function ($q) {
+                $q->whereNull('delivery_person')
+                  ->whereNull('delivery_phone')
+                  ->where(function ($sub) {
+                      $sub->whereNull('delivery_status')
+                          ->orWhere('delivery_status', 'pending')
+                          ->orWhere('delivery_status', '');
+                  });
+            });
+        }
+
+        if ($request->filter === 'treated') {
+            $query->where('delivery_status', 'sent');
+        }
+
+        if ($request->filter === 'delivered') {
+            $query->whereIn('delivery_status', ['delivered', 'completed']);
+        }
+
+        $orders = $query->get();
 
         return response()->json([
             'status' => 'success',
@@ -26,62 +47,56 @@ class OrderController extends Controller
         ], 200);
     }
 
+
     // 🛒 2️⃣ Customer creates new order
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'payment_method' => 'required|in:card,delivery',
-            'address' => 'required|string|max:255',
-            'total_price' => 'required|numeric|min:0',
-            'phone' => 'required|string|max:20',
-        ]);
-
         try {
-            DB::beginTransaction();
-
-            $userId = Auth::id() ?? $request->user_id;
-
-            // Create Order
-            $order = Order::create([
-                'user_id' => $userId,
-                'payment_method' => $validated['payment_method'],
-                'status' => $validated['payment_method'] === 'card' ? 'paid' : 'on delivery',
-                'total_price' => $validated['total_price'],
-                'address' => $validated['address'],
-                'phone' => $validated['phone'],
+            $validated = $request->validate([
+                'items' => 'required|array',
+                'items.*.product_id' => 'required|exists:products,id',
+                'items.*.quantity' => 'required|integer|min:1',
+                'payment_method' => 'required|in:card,delivery',
+                'address' => 'required|string',
+                'phone_number' => 'required|string|max:20',
+                'total_price' => 'required|numeric',
             ]);
 
-            // Create Order Items & reduce stock
+            // ✅ Create the main order
+            $order = Order::create([
+                'user_id' => Auth::id() ?? $request->user_id,
+                'order_number' => 'ORD-' . strtoupper(uniqid()),
+                'payment_method' => $validated['payment_method'],
+                'status' => $validated['payment_method'] === 'card' ? 'paid' : 'on delivery',
+                'payment_status' => $validated['payment_method'] === 'card' ? 'paid' : 'unpaid',
+                'delivery_status' => 'pending',
+                'total_price' => $validated['total_price'],
+                'address' => $validated['address'],
+                'phone_number' => $validated['phone_number'],
+            ]);
+
+            // ✅ Create each order item
             foreach ($validated['items'] as $item) {
-                $product = Product::findOrFail($item['product_id']);
-
-                if ($product->quantity < $item['quantity']) {
-                    throw new \Exception("Not enough stock for {$product->name}");
+                $product = Product::find($item['product_id']);
+                if ($product) {
+                    OrderItem::create([
+                        'order_id' => $order->id,
+                        'product_id' => $product->id,
+                        'quantity' => $item['quantity'],
+                        'price' => $product->price,
+                        'subtotal' => $product->price * $item['quantity'],
+                    ]);
                 }
-
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $product->id,
-                    'quantity' => $item['quantity'],
-                    'price' => $product->price,
-                ]);
-
-                $product->decrement('quantity', $item['quantity']);
             }
 
-            // Send notification to admin/salesperson
+            // ✅ Notify Admin/Sales
             Notification::create([
-                'user_id' => 1, // You can later replace with dynamic salesperson assignment
+                'user_id' => 1,
                 'order_id' => $order->id,
                 'title' => 'New Order Placed',
                 'message' => 'A new order has been placed and needs processing.',
                 'type' => 'order_update',
             ]);
-
-            DB::commit();
 
             return response()->json([
                 'status' => 'success',
@@ -89,7 +104,6 @@ class OrderController extends Controller
                 'order' => $order->load('items.product'),
             ], 201);
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error creating order: ' . $e->getMessage(),
@@ -97,38 +111,45 @@ class OrderController extends Controller
         }
     }
 
+
     // 🚚 3️⃣ Salesperson assigns delivery details
     public function assignDelivery(Request $request, $id)
     {
         $validated = $request->validate([
             'delivery_person' => 'required|string|max:255',
             'delivery_phone' => 'required|string|max:20',
+            'delivery_address' => 'nullable|string',
         ]);
 
         $order = Order::findOrFail($id);
+
+        // ✅ Update delivery info
         $order->update([
             'delivery_person' => $validated['delivery_person'],
             'delivery_phone' => $validated['delivery_phone'],
+            'delivery_address' => $validated['delivery_address'] ?? $order->address,
+            'delivery_status' => 'sent',
             'status' => 'on delivery',
         ]);
 
-        // Notify customer
+        // ✅ Notify customer
         Notification::create([
             'user_id' => $order->user_id,
             'order_id' => $order->id,
-            'title' => 'Order Shipped',
+            'title' => 'Order On The Way',
             'message' => "Your order is now being delivered by {$validated['delivery_person']}.",
             'type' => 'order_update',
         ]);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Delivery person assigned and customer notified',
+            'message' => 'Delivery assigned successfully',
             'order' => $order,
         ], 200);
     }
 
-    // 🧾 4️⃣ View a single order (for any user)
+
+    // 🧾 4️⃣ View a single order
     public function show($id)
     {
         $order = Order::with(['items.product', 'user'])->findOrFail($id);
@@ -139,17 +160,27 @@ class OrderController extends Controller
         ], 200);
     }
 
-    // ✅ 5️⃣ Update order status (paid, completed, cancelled)
+
+    // ✅ 5️⃣ Update order status
     public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([
-            'status' => 'required|in:on delivery,paid,completed,cancelled',
+            'status' => 'required|in:on delivery,paid,completed,cancelled,delivered',
         ]);
 
         $order = Order::findOrFail($id);
+
+        // ✅ Also sync delivery_status when delivered
+        if ($validated['status'] === 'delivered') {
+            $order->delivery_status = 'delivered';
+            $order->payment_status = 'unpaid';
+        } elseif ($validated['status'] === 'paid') {
+            $order->payment_status = 'paid';
+        }
+
         $order->update(['status' => $validated['status']]);
 
-        // Notify customer
+        // ✅ Notify customer
         Notification::create([
             'user_id' => $order->user_id,
             'order_id' => $order->id,
@@ -165,7 +196,8 @@ class OrderController extends Controller
         ], 200);
     }
 
-    // 🧍 6️⃣ Get all orders for a specific user (Customer Order History)
+
+    // 🧍 6️⃣ Get all orders for a specific customer
     public function userOrders($userId)
     {
         $orders = Order::with('items.product')

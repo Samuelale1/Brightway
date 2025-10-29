@@ -2,21 +2,24 @@ import React, { useState, useEffect } from "react";
 import ProductsSection from "../components/ProductsSection";
 import OrdersSection from "../components/OrdersSection";
 import NotificationsSection from "../components/NotificationsSections";
-
+import OrderDetails from "../components/OrderDetails"; // ✅ import details component
 
 const Sales = () => {
-  const [activePage, setActivePage] = useState("products"); // default section
-  const user = JSON.parse(localStorage.getItem("user")); // logged-in user info
+  const [activePage, setActivePage] = useState("products");
+  const [selectedOrderId, setSelectedOrderId] = useState(null); // ✅ new
+  const user = JSON.parse(localStorage.getItem("user"));
 
-  // ✅ Handle Logout
   const handleLogout = () => {
     localStorage.removeItem("user");
     window.location.href = "/";
   };
 
+  // ✅ when the user clicks "Back to Orders" in OrderDetails
+  const handleBackToOrders = () => setSelectedOrderId(null);
+
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* ✅ Sidebar */}
+      {/* Sidebar */}
       <aside className="w-64 bg-blue-900 text-white flex flex-col p-4 space-y-6">
         <div className="text-center text-2xl font-semibold border-b border-gray-600 pb-3">
           <img src="/LOGO.png" alt="Logo" className="w-20 h-20 mx-auto mb-4" />
@@ -25,7 +28,10 @@ const Sales = () => {
 
         <nav className="flex flex-col space-y-2">
           <button
-            onClick={() => setActivePage("products")}
+            onClick={() => {
+              setActivePage("products");
+              setSelectedOrderId(null);
+            }}
             className={`p-3 rounded-md text-left hover:bg-blue-700 transition ${
               activePage === "products" ? "bg-blue-700" : ""
             }`}
@@ -33,7 +39,10 @@ const Sales = () => {
             🛒 Products
           </button>
           <button
-            onClick={() => setActivePage("orders")}
+            onClick={() => {
+              setActivePage("orders");
+              setSelectedOrderId(null);
+            }}
             className={`p-3 rounded-md text-left hover:bg-blue-700 transition ${
               activePage === "orders" ? "bg-blue-700" : ""
             }`}
@@ -41,7 +50,10 @@ const Sales = () => {
             📦 Orders
           </button>
           <button
-            onClick={() => setActivePage("notifications")}
+            onClick={() => {
+              setActivePage("notifications");
+              setSelectedOrderId(null);
+            }}
             className={`p-3 rounded-md text-left hover:bg-blue-700 transition ${
               activePage === "notifications" ? "bg-blue-700" : ""
             }`}
@@ -58,7 +70,7 @@ const Sales = () => {
         </button>
       </aside>
 
-      {/* ✅ Main Content Area */}
+      {/* Main Content */}
       <main className="flex-1 p-6 overflow-auto">
         <header className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-gray-700 capitalize">
@@ -69,22 +81,24 @@ const Sales = () => {
           </div>
         </header>
 
-        {/* ✅ Dynamic Section Rendering */}
+        {/* ✅ Page logic */}
         {activePage === "products" && <ProductsSection />}
-        {activePage === "orders" && <OrdersSection />}
         {activePage === "notifications" && <NotificationsSection />}
+
+        {/* ✅ Orders logic */}
+        {activePage === "orders" && !selectedOrderId && (
+          <OrdersSection onSelectOrder={setSelectedOrderId} />
+        )}
+
+        {activePage === "orders" && selectedOrderId && (
+          <OrderDetails
+            orderId={selectedOrderId}
+            onBack={handleBackToOrders}
+          />
+        )}
       </main>
     </div>
   );
 };
-
-
-/* const OrdersSection = () => (
-  <div className="text-gray-700">Orders Handling UI coming soon...</div>
-); */
-
-/* const NotificationsSection = () => (
-  <div className="text-gray-700">Notifications display coming soon...</div>
-);  */
 
 export default Sales;
