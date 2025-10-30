@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from "react";
 
 const OrdersSection = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
   const [orders, setOrders] = useState([]);
+  const [deliveryPersons, setDeliveryPersons] = useState([]);
   const [activeTab, setActiveTab] = useState("pending");
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [deliveryData, setDeliveryData] = useState({
-    delivery_person: "",
-    delivery_phone: "",
-  });
+  const [deliveryPersonId, setDeliveryPersonId] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // ✅ Fetch Orders
+  // ✅ Fetch all orders
   const fetchOrders = async () => {
     try {
       const res = await fetch("http://127.0.0.1:8000/api/orders");
@@ -23,11 +22,24 @@ const OrdersSection = () => {
     }
   };
 
+  // ✅ Fetch delivery persons
+  const fetchDeliveryPersons = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/delivery-persons");
+      const data = await res.json();
+      if (res.ok) setDeliveryPersons(data.delivery_persons || []);
+      else console.error("Failed to load delivery persons:", data);
+    } catch (err) {
+      console.error("Error fetching delivery persons:", err);
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
+    fetchDeliveryPersons();
   }, []);
 
-  // ✅ Filter Orders by Tab
+  // ✅ Filter orders by tab
   const filteredOrders = orders.filter((order) => {
     if (activeTab === "pending") {
       return (
@@ -47,51 +59,54 @@ const OrdersSection = () => {
     return true;
   });
 
-  // ✅ Handle Assign Delivery
-  const handleAssignDelivery = async (e) => {
-    e.preventDefault();
-    if (!selectedOrder) return;
+  // ✅ Assign delivery person
+ const handleAssignDelivery = async (e) => {
+  e.preventDefault();
+  if (!selectedOrder || !deliveryPersonId) return;
 
-    setLoading(true);
-    setMessage("");
+  const user = JSON.parse(localStorage.getItem("user")); // ✅ Get logged-in salesperson
+  if (!user || !user.id) {
+    setMessage("⚠️ Salesperson not identified. Please log in again.");
+    return;
+  }
 
-    try {
-      // ✅ Include delivery_address (customer’s address)
-      const updatedData = {
-        ...deliveryData,
-        delivery_address: selectedOrder.address,
-        delivery_status: "sent",
-      };
+  setLoading(true);
+  setMessage("");
 
-      const res = await fetch(
-        `http://127.0.0.1:8000/api/orders/${selectedOrder.id}/assign-delivery`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(updatedData),
-        }
-      );
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setMessage("✅ Delivery assigned and status updated!");
-        setSelectedOrder(null);
-        setDeliveryData({ delivery_person: "", delivery_phone: "" });
-        fetchOrders(); // refresh the list
-      } else {
-        setMessage(data.message || "❌ Failed to assign delivery");
+  try {
+    const res = await fetch(
+      `http://127.0.0.1:8000/api/orders/${selectedOrder.id}/assign-delivery`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          delivery_person_id: deliveryPersonId,
+          salesperson_id: user.id, // ✅ send salesperson_id
+        }),
       }
-    } catch (err) {
-      console.error("Error assigning delivery:", err);
-      setMessage("⚠️ Network error assigning delivery.");
-    } finally {
-      setLoading(false);
+    );
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setMessage("✅ Delivery person assigned successfully!");
+      alert(`Order #${selectedOrder.order_number} is now out for delivery 🚚`);
+      setSelectedOrder(null);
+      setDeliveryPersonId("");
+      fetchOrders(); // refresh order list
+    } else {
+      setMessage(data.message || "❌ Failed to assign delivery person");
     }
-  };
+  } catch (err) {
+    console.error("Error assigning delivery:", err);
+    setMessage("⚠️ Network error while assigning delivery.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="p-4">
@@ -116,7 +131,7 @@ const OrdersSection = () => {
         ))}
       </div>
 
-      {/* ✅ Orders List */}
+      {/* ✅ Orders Grid */}
       {filteredOrders.length === 0 ? (
         <p className="text-gray-500 text-center mt-10">
           No {activeTab} orders at the moment.
@@ -126,12 +141,13 @@ const OrdersSection = () => {
           {filteredOrders.map((order) => (
             <div
               key={order.id}
-              className="bg-white rounded-xl shadow p-4 hover:shadow-lg transition"
+              className="bg-blue-50 rounded-xl shadow p-4 hover:shadow-lg transition"
             >
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-semibold text-gray-800">
                   Order #{order.order_number}
                 </h3>
+                
                 <span
                   className={`text-sm px-2 py-1 rounded ${
                     activeTab === "pending"
@@ -143,6 +159,7 @@ const OrdersSection = () => {
                 >
                   {order.delivery_status || "pending"}
                 </span>
+                
               </div>
 
               <p className="text-gray-600 text-sm mb-1">
@@ -155,14 +172,6 @@ const OrdersSection = () => {
                 Total: ₦{order.total_price}
               </p>
 
-              {/* ✅ Customer’s Address */}
-              <p className="text-gray-600 text-sm mb-1">
-                Delivery Address:{" "}
-                <span className="font-medium text-gray-800">
-                  {order.delivery_address || order.address}
-                </span>
-              </p>
-
               {/* ✅ Order Items */}
               <div className="border-t border-gray-200 pt-2 mb-3">
                 <p className="text-sm font-medium mb-1">Items:</p>
@@ -173,6 +182,8 @@ const OrdersSection = () => {
                     </li>
                   ))}
                 </ul>
+
+                <button className=" bg-blue-400 px-10 py-2 text-gray-200 border-0 rounded-md "> Paid</button>
               </div>
 
               {activeTab === "pending" && (
@@ -188,7 +199,7 @@ const OrdersSection = () => {
         </div>
       )}
 
-      {/* ✅ Modal for Treat Order */}
+      {/* ✅ Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
@@ -201,13 +212,14 @@ const OrdersSection = () => {
                 <strong>Customer:</strong> {selectedOrder.user?.name}
               </p>
               <p>
-                <strong>Customer Address:</strong> {selectedOrder.address}
+                <strong>Address:</strong> {selectedOrder.address}
               </p>
               <p>
-                <strong>Customer Phone:</strong> {selectedOrder.phone_number}
+                <strong>Phone:</strong> {selectedOrder.phone_number}
               </p>
             </div>
 
+            {/* ✅ Order Items in Modal */}
             <div className="border-t border-gray-200 pt-3 mb-4">
               <p className="font-medium mb-2">Order Items:</p>
               <ul className="text-sm text-gray-600 space-y-1">
@@ -219,36 +231,24 @@ const OrdersSection = () => {
               </ul>
             </div>
 
-            {/* Delivery Form */}
+            {/* ✅ Delivery Person Dropdown */}
             <form onSubmit={handleAssignDelivery} className="space-y-3">
-              <input
-                type="text"
-                name="delivery_person"
-                placeholder="Delivery Person Name"
-                value={deliveryData.delivery_person}
-                onChange={(e) =>
-                  setDeliveryData({
-                    ...deliveryData,
-                    delivery_person: e.target.value,
-                  })
-                }
+              <label className="text-sm font-medium text-gray-700">
+                Assign Delivery Person:
+              </label>
+              <select
+                value={deliveryPersonId}
+                onChange={(e) => setDeliveryPersonId(e.target.value)}
                 required
                 className="w-full border p-2 rounded"
-              />
-              <input
-                type="text"
-                name="delivery_phone"
-                placeholder="Delivery Phone"
-                value={deliveryData.delivery_phone}
-                onChange={(e) =>
-                  setDeliveryData({
-                    ...deliveryData,
-                    delivery_phone: e.target.value,
-                  })
-                }
-                required
-                className="w-full border p-2 rounded"
-              />
+              >
+                <option value="">-- Select Delivery Person --</option>
+                {deliveryPersons.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.name} ({person.phone})
+                  </option>
+                ))}
+              </select>
 
               <div className="flex justify-end gap-3 mt-4">
                 <button

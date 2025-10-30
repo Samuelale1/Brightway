@@ -11,29 +11,46 @@ class Order extends Model
 
     protected $fillable = [
         'user_id',
+        'salesperson_id',
         'order_number',
-        'delivery_person',
-        'delivery_phone',
+        'delivery_person_id',
         'total_price',
         'payment_method',
         'status',
         'address',
         'phone_number',
+        'delivery_status',
     ];
 
-    // ✅ Relationship: an order belongs to a customer
+    /* ============================================================
+       🔹 RELATIONSHIPS
+    ============================================================ */
+
+    // 🧍 Customer who made the order
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    // ✅ Relationship: an order has many items
+    // 💼 Salesperson who treated the order
+    public function salesperson()
+    {
+        return $this->belongsTo(User::class, 'salesperson_id');
+    }
+
+    // 🚚 Delivery person assigned (record in DeliveryPerson table)
+    public function deliveryPerson()
+{
+    return $this->belongsTo(DeliveryPerson::class, 'delivery_person_id');
+}
+
+    // 🛍️ Items in the order
     public function items()
     {
         return $this->hasMany(OrderItem::class);
     }
 
-    // ✅ Relationship: an order can have many notifications
+    // 🔔 Notifications related to the order
     public function notifications()
     {
         return $this->hasMany(Notification::class);

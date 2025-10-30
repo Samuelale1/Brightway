@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Notification;
+use App\Models\DeliveryPerson;
 use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
@@ -18,16 +19,15 @@ class OrderController extends Controller
         $query = Order::with(['user', 'items.product'])
             ->orderBy('created_at', 'desc');
 
-        // 🟢 Filter examples (optional)
         if ($request->filter === 'pending') {
             $query->where(function ($q) {
                 $q->whereNull('delivery_person')
-                  ->whereNull('delivery_phone')
-                  ->where(function ($sub) {
-                      $sub->whereNull('delivery_status')
-                          ->orWhere('delivery_status', 'pending')
-                          ->orWhere('delivery_status', '');
-                  });
+                    ->whereNull('delivery_phone')
+                    ->where(function ($sub) {
+                        $sub->whereNull('delivery_status')
+                            ->orWhere('delivery_status', 'pending')
+                            ->orWhere('delivery_status', '');
+                    });
             });
         }
 
@@ -62,7 +62,7 @@ class OrderController extends Controller
                 'total_price' => 'required|numeric',
             ]);
 
-            // ✅ Create the main order
+            // ✅ Create main order
             $order = Order::create([
                 'user_id' => Auth::id() ?? $request->user_id,
                 'order_number' => 'ORD-' . strtoupper(uniqid()),
@@ -75,7 +75,7 @@ class OrderController extends Controller
                 'phone_number' => $validated['phone_number'],
             ]);
 
-            // ✅ Create each order item
+            // ✅ Create items
             foreach ($validated['items'] as $item) {
                 $product = Product::find($item['product_id']);
                 if ($product) {
@@ -89,7 +89,7 @@ class OrderController extends Controller
                 }
             }
 
-            // ✅ Notify Admin/Sales
+            // ✅ Notify Admin
             Notification::create([
                 'user_id' => 1,
                 'order_id' => $order->id,
@@ -113,40 +113,43 @@ class OrderController extends Controller
 
 
     // 🚚 3️⃣ Salesperson assigns delivery details
-    public function assignDelivery(Request $request, $id)
+   public function assignDelivery(Request $request, $id)
     {
         $validated = $request->validate([
-            'delivery_person' => 'required|string|max:255',
-            'delivery_phone' => 'required|string|max:20',
-            'delivery_address' => 'nullable|string',
-        ]);
+            'delivery_person_id' => 'required|exists:delivery_persons,id',
+            'salesperson_id' => 'nullable|exists:users,id',
+    ]);
 
-        $order = Order::findOrFail($id);
+    $order = Order::findOrFail($id);
 
-        // ✅ Update delivery info
-        $order->update([
-            'delivery_person' => $validated['delivery_person'],
-            'delivery_phone' => $validated['delivery_phone'],
-            'delivery_address' => $validated['delivery_address'] ?? $order->address,
-            'delivery_status' => 'sent',
-            'status' => 'on delivery',
-        ]);
+    $deliveryPerson = DeliveryPerson::findOrFail($validated['delivery_person_id']);
 
-        // ✅ Notify customer
-        Notification::create([
-            'user_id' => $order->user_id,
-            'order_id' => $order->id,
-            'title' => 'Order On The Way',
-            'message' => "Your order is now being delivered by {$validated['delivery_person']}.",
-            'type' => 'order_update',
-        ]);
+    // ✅ Update order record
+    $order->update([
+        'salesperson_id' => $validated['salesperson_id'],
+        'delivery_person_id' => $deliveryPerson->id,
+        'delivery_person' => $deliveryPerson->name,
+        'delivery_phone' => $deliveryPerson->phone,
+        'delivery_status' => 'sent',
+        'status' => 'on delivery',
+    ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Delivery assigned successfully',
-            'order' => $order,
-        ], 200);
-    }
+    // ✅ Notify the customer
+    Notification::create([
+        'user_id' => $order->user_id,
+        'order_id' => $order->id,
+        'title' => 'Order On The Way',
+        'message' => "Your order is being delivered by {$deliveryPerson->name}.",
+        'type' => 'order_update',
+    ]);
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Delivery person assigned successfully.',
+        'order' => $order->load(['user', 'items.product', 'deliveryPerson']),
+    ]);
+}
+
 
 
     // 🧾 4️⃣ View a single order
@@ -170,7 +173,6 @@ class OrderController extends Controller
 
         $order = Order::findOrFail($id);
 
-        // ✅ Also sync delivery_status when delivered
         if ($validated['status'] === 'delivered') {
             $order->delivery_status = 'delivered';
             $order->payment_status = 'unpaid';
@@ -180,7 +182,6 @@ class OrderController extends Controller
 
         $order->update(['status' => $validated['status']]);
 
-        // ✅ Notify customer
         Notification::create([
             'user_id' => $order->user_id,
             'order_id' => $order->id,
