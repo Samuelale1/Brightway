@@ -196,6 +196,42 @@ class OrderController extends Controller
             'order' => $order,
         ], 200);
     }
+    
+    // 💳 7️⃣ Confirm Payment & Mark as Delivered
+    public function confirmPayment(Request $request, $id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+
+            // ✅ Update order fields
+            $order->update([
+                'payment_status' => 'paid',
+                'status' => 'completed',
+                'delivery_status' => 'delivered',
+            ]);
+
+            // ✅ Notify the customer
+            Notification::create([
+                'user_id' => $order->user_id,
+                'order_id' => $order->id,
+                'title' => 'Order Delivered & Payment Confirmed',
+                'message' => 'Your payment has been confirmed and your order is now completed.',
+                'type' => 'order_update',
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Payment confirmed and order marked as delivered!',
+                'order' => $order->load(['items.product', 'user']),
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error confirming payment: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
 
 
     // 🧍 6️⃣ Get all orders for a specific customer

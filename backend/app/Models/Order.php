@@ -20,6 +20,7 @@ class Order extends Model
         'address',
         'phone_number',
         'delivery_status',
+        'payment_status',
     ];
 
     /* ============================================================

@@ -25,3 +25,5 @@ Route::put('/products/{id}', [ProductController::class, 'update']);
 Route::delete('/products/{id}', [ProductController::class, 'destroy']);
 Route::get('/delivery-persons', [DeliveryPersonController::class, 'index']);
 Route::post('/delivery-persons', [DeliveryPersonController::class, 'store']);
+Route::put('/orders/{id}/confirm-payment', [OrderController::class, 'confirmPayment']);
+
