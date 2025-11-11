@@ -39,6 +39,10 @@ class Order extends Model
         return $this->belongsTo(User::class, 'salesperson_id');
     }
 
+    public function admin(){
+        return $this->belongsTo(User::class, 'admin_id');
+    }
+
     // 🚚 Delivery person assigned (record in DeliveryPerson table)
     public function deliveryPerson()
 {

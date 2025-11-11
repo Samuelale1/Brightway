@@ -134,7 +134,7 @@ const Customer = () => {
   return (
     <div className="min-h-screen bg-blue-100 py-10 px-6 relative">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="fixed top-0 left-0 right-6 bg-blue-100 flex justify-between items-center mb-8 ">
         <h1 className="text-3xl font-bold text-blue-900"><img src="/LOGO.png" alt="Brightway Logo" className="inline-block w-19 h-19 mr-2" /> Brightway Menu</h1>
         <button
           onClick={() => setShowCart(!showCart)}
@@ -176,7 +176,7 @@ const Customer = () => {
           </svg>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.map((product) => (
             <div
               key={product.id}

@@ -6,20 +6,60 @@ import Sales from "./pages/Sales";
 import Customer from "./pages/Customer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Checkout from "./pages/Checkout";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import DashboardHome from "./pages/Admin/DashboardHome";
+import Users from "./pages/Admin/Users";
+import Products from "./pages/Admin/Products";
+import Orders from "./pages/Admin/Orders";
+import Reports from "./pages/Admin/Reports";
+import Profile from "./pages/Admin/Profile";
 
 const App = () => {
   return (
     <Router>
-      
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/Admin" element={<ProtectedRoute allowedRoles={['admin']}><Admin /></ProtectedRoute>} />
-          <Route path="/Sales" element={<ProtectedRoute allowedRoles={['salesperson','admin']}><Sales /></ProtectedRoute>} />
-          <Route path="/Customer" element={<ProtectedRoute allowedRoles={['customer','admin']}><Customer /></ProtectedRoute>} />
-          {/* <Route path="/dashboard/orders" element={<ProtectedRoute allowedRoles={['admin','salesperson']}><OrdersSection /></ProtectedRoute>} />
-          <Route path="/dashboard/orders/:id" element={<ProtectedRoute allowedRoles={['admin','salesperson']}><OrderDetails /></ProtectedRoute>} /> */}
-          <Route path="/checkout" element={<Checkout />} />
-        </Routes>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Login />} />
+        <Route path="/checkout" element={<Checkout />} />
+
+        {/* Admin Routes */}
+        <Route
+          path="/admin/*"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DashboardHome />} /> {/* Default page */}
+          <Route path="dashboard" element={<DashboardHome />} />
+          <Route path="users" element={<Users />} />
+          <Route path="products" element={<Products />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="profile" element={<Profile />} />
+        </Route>
+
+        {/* Sales Routes */}
+        <Route
+          path="/sales"
+          element={
+            <ProtectedRoute allowedRoles={["salesperson", "admin"]}>
+              <Sales />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Customer Routes */}
+        <Route
+          path="/customer"
+          element={
+            <ProtectedRoute allowedRoles={["customer", "admin"]}>
+              <Customer />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
     </Router>
   );
 };

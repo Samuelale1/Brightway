@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import ModalWrapper from "../components/ModalWrapper"; 
 
 const OrdersSection = () => {
   const [orders, setOrders] = useState([]);
@@ -9,7 +10,6 @@ const OrdersSection = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // ✅ Load logged-in salesperson (for tracking)
   const user = JSON.parse(localStorage.getItem("user"));
 
   // ✅ Fetch all orders
@@ -24,7 +24,7 @@ const OrdersSection = () => {
     }
   };
 
-  // ✅ Fetch all delivery persons
+  // ✅ Fetch delivery persons
   const fetchDeliveryPersons = async () => {
     try {
       const res = await fetch("http://127.0.0.1:8000/api/delivery-persons");
@@ -41,21 +41,20 @@ const OrdersSection = () => {
     fetchDeliveryPersons();
   }, []);
 
-  // ✅ Filter orders per tab
+  // ✅ Filter orders by tab
   const filteredOrders = orders.filter((order) => {
-    if (activeTab === "pending") {
+    if (activeTab === "pending")
       return (
         order.delivery_status === "pending" ||
         order.delivery_status === null ||
         order.delivery_status === ""
       );
-    }
     if (activeTab === "treated") return order.delivery_status === "sent";
     if (activeTab === "delivered") return order.delivery_status === "delivered";
     return true;
   });
 
-  // ✅ Assign delivery person (Treat Order)
+ 
   const handleAssignDelivery = async (e) => {
     e.preventDefault();
     if (!selectedOrder || !deliveryPersonId) return;
@@ -68,13 +67,10 @@ const OrdersSection = () => {
         `http://127.0.0.1:8000/api/orders/${selectedOrder.id}/assign-delivery`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             delivery_person_id: deliveryPersonId,
-            salesperson_id: user?.id, // ✅ track salesperson
+            salesperson_id: user?.id,
           }),
         }
       );
@@ -85,7 +81,7 @@ const OrdersSection = () => {
         setMessage("✅ Delivery person assigned successfully!");
         setSelectedOrder(null);
         setDeliveryPersonId("");
-        fetchOrders(); // Refresh orders after assigning
+        fetchOrders();
       } else {
         setMessage(data.message || "❌ Failed to assign delivery person");
       }
@@ -97,22 +93,18 @@ const OrdersSection = () => {
     }
   };
 
-  // ✅ Confirm Payment
   const handleConfirmPayment = async (orderId) => {
     try {
       const res = await fetch(
         `http://127.0.0.1:8000/api/orders/${orderId}/confirm-payment`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-        }
+        { method: "PUT", headers: { "Content-Type": "application/json" } }
       );
 
       const data = await res.json();
 
       if (res.ok) {
         alert("✅ Payment confirmed and order marked as delivered!");
-        fetchOrders(); // Refresh so it moves to Delivered tab
+        fetchOrders();
       } else {
         alert(data.message || "❌ Failed to confirm payment");
       }
@@ -153,19 +145,12 @@ const OrdersSection = () => {
       <div className="flex space-x-4 mb-6">
         {["pending", "treated", "delivered"].map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-md font-medium transition ${
-              activeTab === tab
-                ? "bg-blue-600 text-white"
+            key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-md font-medium transition 
+              ${ activeTab === tab ? "bg-blue-600 text-white"
                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
             }`}
           >
-            {tab === "pending"
-              ? "⏳ Pending"
-              : tab === "treated"
-              ? "🚚 Treated"
-              : "✅ Delivered"}
+            {tab === "pending" ? "⏳ Pending" : tab === "treated" ? "🚚 Treated" : "✅ Delivered"}
           </button>
         ))}
       </div>
@@ -182,7 +167,7 @@ const OrdersSection = () => {
               key={order.id}
               className="bg-white rounded-xl shadow p-4 hover:shadow-lg transition relative"
             >
-              {/* ✅ Status Labels */}
+              {/* Status Badges */}
               <div className="absolute top-2 right-2 flex flex-col items-end space-y-1">
                 <span
                   className={`text-xs px-2 py-1 rounded font-medium ${getDeliveryStatusColor(
@@ -200,14 +185,12 @@ const OrdersSection = () => {
                 </span>
               </div>
 
-              {/* ✅ Order Header */}
               <div className="flex justify-between items-center mb-2 mt-6">
                 <h3 className="font-semibold text-gray-800">
                   Order #{order.order_number}
                 </h3>
               </div>
 
-              {/* ✅ Info */}
               <p className="text-gray-600 text-sm mb-1">
                 Customer: {order.user?.name}
               </p>
@@ -218,7 +201,6 @@ const OrdersSection = () => {
                 Total: ₦{order.total_price}
               </p>
 
-              {/* ✅ Items */}
               <div className="border-t border-gray-200 pt-2 mb-3">
                 <p className="text-sm font-medium mb-1">Items:</p>
                 <ul className="text-sm text-gray-600 space-y-1">
@@ -230,7 +212,6 @@ const OrdersSection = () => {
                 </ul>
               </div>
 
-              {/* ✅ Buttons */}
               {activeTab === "pending" && (
                 <button
                   onClick={() => setSelectedOrder(order)}
@@ -254,28 +235,20 @@ const OrdersSection = () => {
         </div>
       )}
 
-      {/* ✅ Treat Order Modal */}
-      {selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
-            <h3 className="text-xl font-semibold mb-4 text-center">
-              Treat Order #{selectedOrder.order_number}
-            </h3>
-
-            {/* Customer Info */}
+      {/* ✅ ModalWrapper Integration */}
+      <ModalWrapper
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        title={`Treat Order #${selectedOrder?.order_number}`}
+      >
+        {selectedOrder && (
+          <>
             <div className="space-y-2 text-sm text-gray-700 mb-4">
-              <p>
-                <strong>Customer:</strong> {selectedOrder.user?.name}
-              </p>
-              <p>
-                <strong>Address:</strong> {selectedOrder.address}
-              </p>
-              <p>
-                <strong>Phone:</strong> {selectedOrder.phone_number}
-              </p>
+              <p><strong>Customer:</strong> {selectedOrder.user?.name}</p>
+              <p><strong>Address:</strong> {selectedOrder.address}</p>
+              <p><strong>Phone:</strong> {selectedOrder.phone_number}</p>
             </div>
 
-            {/* ✅ Order Items List */}
             <div className="border-t border-gray-200 pt-3 mb-4">
               <p className="font-medium mb-2">Order Items:</p>
               <ul className="text-sm text-gray-600 space-y-1">
@@ -287,7 +260,6 @@ const OrdersSection = () => {
               </ul>
             </div>
 
-            {/* ✅ Delivery Person Dropdown */}
             <form onSubmit={handleAssignDelivery} className="space-y-3">
               <label className="text-sm font-medium text-gray-700">
                 Assign Delivery Person:
@@ -329,9 +301,9 @@ const OrdersSection = () => {
                 {message}
               </p>
             )}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </ModalWrapper>
     </div>
   );
 };
