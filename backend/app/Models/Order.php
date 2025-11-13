@@ -12,6 +12,7 @@ class Order extends Model
     protected $fillable = [
         'user_id',
         'salesperson_id',
+        'admin_id',
         'order_number',
         'delivery_person_id',
         'total_price',
@@ -33,21 +34,36 @@ class Order extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function admin()
+{
+    return $this->belongsTo(User::class, 'admin_id');
+}
     // 💼 Salesperson who treated the order
     public function salesperson()
     {
         return $this->belongsTo(User::class, 'salesperson_id');
     }
 
-    public function admin(){
-        return $this->belongsTo(User::class, 'admin_id');
-    }
 
     // 🚚 Delivery person assigned (record in DeliveryPerson table)
     public function deliveryPerson()
 {
     return $this->belongsTo(DeliveryPerson::class, 'delivery_person_id');
 }
+
+protected $appends = ['delivery_person_name', 'delivery_person_phone'];
+
+public function getDeliveryPersonNameAttribute()
+{
+    return $this->deliveryPerson->name ?? $this->delivery_person ?? 'N/A';
+}
+
+public function getDeliveryPersonPhoneAttribute()
+{
+    return $this->deliveryPerson->phone ?? $this->delivery_phone ?? 'N/A';
+}
+
+
 
     // 🛍️ Items in the order
     public function items()

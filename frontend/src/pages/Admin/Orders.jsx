@@ -10,6 +10,9 @@ const Orders = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  const user = JSON.parse(localStorage.getItem("user"));
+  
+
   // ✅ Fetch all orders
   const fetchOrders = async () => {
     try {
@@ -21,7 +24,7 @@ const Orders = () => {
     }
   };
 
-  // ✅ Fetch all delivery persons
+  // ✅ Fetch delivery persons
   const fetchDeliveryPersons = async () => {
     try {
       const res = await fetch("http://127.0.0.1:8000/api/delivery-persons");
@@ -37,46 +40,40 @@ const Orders = () => {
     fetchDeliveryPersons();
   }, []);
 
-  // ✅ Filter Orders by status
+  // ✅ Filter orders by tab
   const filteredOrders = orders.filter((order) => {
     if (activeTab === "pending")
       return order.delivery_status === "pending" || !order.delivery_status;
     if (activeTab === "sent") return order.delivery_status === "sent";
-    if (activeTab === "delivered") return order.delivery_status === "delivered";
+    if (activeTab === "delivered") return order.status === "completed";
     return true;
   });
 
-  // ✅ Assign Delivery
+  // ✅ Assign delivery (Treat Order)
   const handleAssignDelivery = async (e) => {
     e.preventDefault();
     if (!selectedOrder || !deliveryPersonId) return;
-
     setLoading(true);
-    setMessage("");
 
     try {
       const res = await fetch(
         `http://127.0.0.1:8000/api/orders/${selectedOrder.id}/assign-delivery`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             delivery_person_id: deliveryPersonId,
+            salesperson_id: user?.id ?? null, // optional for admin
           }),
         }
       );
-
       const data = await res.json();
+
       if (res.ok) {
         setMessage("✅ Delivery assigned successfully!");
         setSelectedOrder(null);
         fetchOrders();
-      } else {
-        setMessage(data.message || "❌ Failed to assign delivery.");
-      }
+      } else setMessage(data.message || "❌ Failed to assign delivery.");
     } catch (err) {
       console.error("Error assigning delivery:", err);
       setMessage("⚠️ Network error while assigning delivery.");
@@ -85,7 +82,7 @@ const Orders = () => {
     }
   };
 
-  // ✅ Confirm Payment
+  // ✅ Confirm payment (for Sent tab)
   const handleConfirmPayment = async (orderId) => {
     try {
       const res = await fetch(
@@ -96,51 +93,40 @@ const Orders = () => {
         }
       );
       const data = await res.json();
+
       if (res.ok) {
-        alert("✅ Payment confirmed!");
-        fetchOrders();
-      } else {
-        alert(data.message || "❌ Failed to confirm payment.");
-      }
+        alert("✅ Payment confirmed and order marked as completed!");
+        setSelectedOrder(null);
+        fetchOrders(); // move to Delivered tab
+      } else alert(data.message || "❌ Failed to confirm payment.");
     } catch (err) {
       console.error("Error confirming payment:", err);
       alert("⚠️ Network error while confirming payment.");
     }
   };
 
-  // ✅ Status color utilities
-  const getDeliveryColor = (status) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-700";
-      case "sent":
-        return "bg-blue-100 text-blue-700";
-      case "delivered":
-        return "bg-green-100 text-green-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
+  
+
+
+  // ✅ Status color helpers
+  const colorClass = {
+    pending: "bg-yellow-100 text-yellow-800",
+    sent: "bg-blue-100 text-blue-800",
+    delivered: "bg-green-100 text-green-800",
+  };
+  const payClass = {
+    paid: "bg-green-100 text-green-800",
+    unpaid: "bg-red-100 text-red-800",
   };
 
-  const getPaymentColor = (status) => {
-    switch (status) {
-      case "paid":
-        return "bg-green-100 text-green-700";
-      case "unpaid":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+  
+
 
   return (
     <div className="p-6">
-      {/* ✅ Page Title */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-gray-700">Manage Orders</h2>
-      </div>
+      <h2 className="text-2xl font-semibold text-gray-700 mb-6">Orders</h2>
 
-      {/* ✅ Tabs */}
+      {/* Tabs */}
       <div className="flex gap-3 mb-6">
         {["pending", "sent", "delivered"].map((tab) => (
           <button
@@ -161,7 +147,7 @@ const Orders = () => {
         ))}
       </div>
 
-      {/* ✅ Orders Table */}
+      {/* Orders Table */}
       <div className="bg-white p-6 rounded-lg shadow">
         {filteredOrders.length > 0 ? (
           <table className="w-full text-sm text-left text-gray-600">
@@ -183,18 +169,18 @@ const Orders = () => {
                   <td className="px-4 py-3">₦{order.total_price}</td>
                   <td className="px-4 py-3">
                     <span
-                      className={`text-xs px-2 py-1 rounded font-medium ${getPaymentColor(
-                        order.payment_status
-                      )}`}
+                      className={`text-xs px-2 py-1 rounded font-medium ${
+                        payClass[order.payment_status] || "bg-gray-100"
+                      }`}
                     >
                       {order.payment_status || "unpaid"}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`text-xs px-2 py-1 rounded font-medium ${getDeliveryColor(
-                        order.delivery_status
-                      )}`}
+                      className={`text-xs px-2 py-1 rounded font-medium ${
+                        colorClass[order.delivery_status] || "bg-gray-100"
+                      }`}
                     >
                       {order.delivery_status || "pending"}
                     </span>
@@ -218,29 +204,27 @@ const Orders = () => {
         )}
       </div>
 
-      {/* ✅ Order Details Modal */}
+      {/* Modal */}
       <ModalWrapper
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
         title={`Order #${selectedOrder?.order_number}`}
       >
         {selectedOrder && (
-          <div className="space-y-4 text-sm text-gray-700">
-            <div>
-              <p>
-                <strong>Customer:</strong> {selectedOrder.user?.name}
-              </p>
-              <p>
-                <strong>Address:</strong> {selectedOrder.address}
-              </p>
-              <p>
-                <strong>Phone:</strong> {selectedOrder.phone_number}
-              </p>
-            </div>
+          <div className="space-y-3 text-sm text-gray-700">
+            <p>
+              <strong>Customer:</strong> {selectedOrder.user?.name}
+            </p>
+            <p>
+              <strong>Address:</strong> {selectedOrder.address}
+            </p>
+            <p>
+              <strong>Phone:</strong> {selectedOrder.phone_number}
+            </p>
 
-            <div>
+            <div className="border-t border-gray-200 pt-3 mb-2">
               <p className="font-medium mb-2">Items:</p>
-              <ul className="list-disc ml-5 space-y-1">
+              <ul className="list-disc ml-6">
                 {selectedOrder.items?.map((item) => (
                   <li key={item.id}>
                     {item.product.name} × {item.quantity}
@@ -249,50 +233,69 @@ const Orders = () => {
               </ul>
             </div>
 
-            {/* ✅ Assign Delivery */}
-            <form onSubmit={handleAssignDelivery} className="space-y-3">
-              <label className="text-sm font-medium">Assign Delivery:</label>
-              <select
-                value={deliveryPersonId}
-                onChange={(e) => setDeliveryPersonId(e.target.value)}
-                required
-                className="w-full border p-2 rounded"
-              >
-                <option value="">-- Select Delivery Person --</option>
-                {deliveryPersons.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.name} ({person.phone})
-                  </option>
-                ))}
-              </select>
-
-              <div className="flex justify-end gap-3 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setSelectedOrder(null)}
-                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+            {/* ✅ Pending: Assign Delivery */}
+            {activeTab === "pending" && (
+              <form onSubmit={handleAssignDelivery} className="space-y-3">
+                <label className="text-sm font-medium">
+                  Assign Delivery Person:
+                </label>
+                <select
+                  value={deliveryPersonId}
+                  onChange={(e) => setDeliveryPersonId(e.target.value)}
+                  required
+                  className="w-full border p-2 rounded"
                 >
-                  Close
-                </button>
+                  <option value="">-- Select Delivery Person --</option>
+                  {deliveryPersons.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.phone})
+                    </option>
+                  ))}
+                </select>
+
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
                 >
                   {loading ? "Assigning..." : "Confirm"}
                 </button>
-              </div>
-            </form>
+              </form>
+            )}
 
-            {/* ✅ Confirm Payment */}
-            {selectedOrder.payment_status !== "paid" && (
-              <div className="pt-4 border-t">
-                <button
-                  onClick={() => handleConfirmPayment(selectedOrder.id)}
-                  className="bg-green-600 text-white px-4 py-2 rounded w-full hover:bg-green-700"
-                >
-                  Confirm Payment
-                </button>
+            {/* ✅ Sent: Confirm Payment */}
+            {/* ✅ Sent: Confirm Payment */}
+{activeTab === "sent" && (
+  <div className="flex flex-col gap-3">
+   <p>
+  <strong>Delivery Person:</strong>{" "}
+  {selectedOrder.delivery_person_name || "N/A"}
+</p>
+<p>
+  <strong>Delivery Phone:</strong>{" "}
+  {selectedOrder.delivery_person_phone || "N/A"}
+</p>
+
+    <button
+      onClick={() => handleConfirmPayment(selectedOrder.id)}
+      className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+    >
+      Confirm Payment
+    </button>
+  </div>
+)}
+
+
+            {/* ✅ Delivered: Read Only */}
+            {activeTab === "delivered" && (
+              <div>
+                <p>
+                  <strong>Delivered By:</strong>{" "}
+                  {selectedOrder.delivery_person_name || "N/A"}
+                </p>
+                <p>
+                  <strong>Status:</strong> Completed
+                </p>
               </div>
             )}
 
@@ -309,4 +312,3 @@ const Orders = () => {
 };
 
 export default Orders;
-  

@@ -14,38 +14,53 @@ use Illuminate\Support\Facades\Auth;
 class OrderController extends Controller
 {
     // 🧾 1️⃣ Get all orders (Admin & Salesperson)
-    public function index(Request $request)
-    {
-        $query = Order::with(['user', 'items.product'])
-            ->orderBy('created_at', 'desc');
+public function index(Request $request)
+{
+    $query = Order::with(['user', 'items.product', 'deliveryPerson'])
+        ->orderBy('created_at', 'desc');
 
-        if ($request->filter === 'pending') {
-            $query->where(function ($q) {
-                $q->whereNull('delivery_person')
-                    ->whereNull('delivery_phone')
-                    ->where(function ($sub) {
-                        $sub->whereNull('delivery_status')
-                            ->orWhere('delivery_status', 'pending')
-                            ->orWhere('delivery_status', '');
-                    });
-            });
-        }
-
-        if ($request->filter === 'treated') {
-            $query->where('delivery_status', 'sent');
-        }
-
-        if ($request->filter === 'delivered') {
-            $query->whereIn('delivery_status', ['delivered', 'completed']);
-        }
-
-        $orders = $query->get();
-
-        return response()->json([
-            'status' => 'success',
-            'orders' => $orders,
-        ], 200);
+    if ($request->filter === 'pending') {
+        $query->where(function ($q) {
+            $q->whereNull('delivery_person_id')
+                ->orWhere('delivery_status', 'pending')
+                ->orWhereNull('delivery_status')
+                ->orWhere('delivery_status', '');
+        });
     }
+
+    if ($request->filter === 'treated') {
+        $query->where('delivery_status', 'sent');
+    }
+
+    if ($request->filter === 'delivered') {
+        $query->whereIn('delivery_status', ['delivered', 'completed']);
+    }
+
+    $orders = $query->get()->map(function ($order) {
+        return [
+            'id' => $order->id,
+            'order_number' => $order->order_number,
+            'total_price' => $order->total_price,
+            'payment_status' => $order->payment_status,
+            'delivery_status' => $order->delivery_status,
+            'address' => $order->address,
+            'phone_number' => $order->phone_number,
+            'status' => $order->status,
+            'user' => $order->user,
+            'items' => $order->items,
+            // ✅ normalize delivery details
+            'delivery_person_name' => $order->deliveryPerson->name ?? $order->delivery_person ?? 'N/A',
+            'delivery_person_phone' => $order->deliveryPerson->phone ?? $order->delivery_phone ?? 'N/A',
+        ];
+    });
+
+    return response()->json([
+        'status' => 'success',
+        'orders' => $orders,
+    ], 200);
+}
+
+
 
 
     // 🛒 2️⃣ Customer creates new order
@@ -124,15 +139,20 @@ class OrderController extends Controller
 
     $deliveryPerson = DeliveryPerson::findOrFail($validated['delivery_person_id']);
 
-    // ✅ Update order record
-    $order->update([
-        'salesperson_id' => $validated['salesperson_id'],
-        'delivery_person_id' => $deliveryPerson->id,
+        /* To Know if the user is an admin or a salesperson */
+        $user = $request->user() ?? Auth::user();
+
+     $order->update([
+        'delivery_person_id' => $request->delivery_person_id,
         'delivery_person' => $deliveryPerson->name,
         'delivery_phone' => $deliveryPerson->phone,
         'delivery_status' => 'sent',
+        'admin_id' => $user->role === 'admin' || $user->role === 'superadmin' ? $user->id : $order->admin_id,
+        'salesperson_id' => $user->role === 'salesperson' ? $user->id : $order->salesperson_id,
         'status' => 'on delivery',
     ]);
+
+    
 
     // ✅ Notify the customer
     Notification::create([
@@ -196,21 +216,24 @@ class OrderController extends Controller
             'order' => $order,
         ], 200);
     }
+
+
+
     
-    // 💳 7️⃣ Confirm Payment & Mark as Delivered
+    
     public function confirmPayment(Request $request, $id)
     {
         try {
             $order = Order::findOrFail($id);
 
-            // ✅ Update order fields
+            
             $order->update([
                 'payment_status' => 'paid',
                 'status' => 'completed',
                 'delivery_status' => 'delivered',
             ]);
 
-            // ✅ Notify the customer
+            
             Notification::create([
                 'user_id' => $order->user_id,
                 'order_id' => $order->id,
@@ -247,4 +270,6 @@ class OrderController extends Controller
             'orders' => $orders,
         ], 200);
     }
+
+    
 }
