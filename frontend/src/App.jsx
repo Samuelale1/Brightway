@@ -21,17 +21,11 @@ const App = () => {
         {/* Public Routes */}
         <Route path="/" element={<Login />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/reports" element={<Reports />} />
 
         {/* Admin Routes */}
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<DashboardHome />} /> {/* Default page */}
+        <Route path="/admin/*" element={<ProtectedRoute allowedRoles={["admin", "superadmin"]}> <AdminDashboard /> </ProtectedRoute> } >
+          <Route index element={<DashboardHome />} /> 
           <Route path="dashboard" element={<DashboardHome />} />
           <Route path="users" element={<Users />} />
           <Route path="products" element={<Products />} />

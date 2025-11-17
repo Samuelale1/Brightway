@@ -19,46 +19,34 @@ public function index(Request $request)
     $query = Order::with(['user', 'items.product', 'deliveryPerson'])
         ->orderBy('created_at', 'desc');
 
-    if ($request->filter === 'pending') {
-        $query->where(function ($q) {
-            $q->whereNull('delivery_person_id')
-                ->orWhere('delivery_status', 'pending')
-                ->orWhereNull('delivery_status')
-                ->orWhere('delivery_status', '');
-        });
+    
+    switch ($request->filter) {
+        case 'pending':
+            $query->where(function ($q) {
+                $q->whereNull('delivery_person_id')
+                    ->orWhere('delivery_status', 'pending')
+                    ->orWhereNull('delivery_status')
+                    ->orWhere('delivery_status', '');
+            });
+            break;
+
+        case 'treated':
+            $query->where('delivery_status', 'sent');
+            break;
+
+        case 'delivered':
+            $query->whereIn('delivery_status', ['delivered', 'completed']);
+            break;
     }
 
-    if ($request->filter === 'treated') {
-        $query->where('delivery_status', 'sent');
-    }
-
-    if ($request->filter === 'delivered') {
-        $query->whereIn('delivery_status', ['delivered', 'completed']);
-    }
-
-    $orders = $query->get()->map(function ($order) {
-        return [
-            'id' => $order->id,
-            'order_number' => $order->order_number,
-            'total_price' => $order->total_price,
-            'payment_status' => $order->payment_status,
-            'delivery_status' => $order->delivery_status,
-            'address' => $order->address,
-            'phone_number' => $order->phone_number,
-            'status' => $order->status,
-            'user' => $order->user,
-            'items' => $order->items,
-            // ✅ normalize delivery details
-            'delivery_person_name' => $order->deliveryPerson->name ?? $order->delivery_person ?? 'N/A',
-            'delivery_person_phone' => $order->deliveryPerson->phone ?? $order->delivery_phone ?? 'N/A',
-        ];
-    });
+    $orders = $query->get();
 
     return response()->json([
         'status' => 'success',
-        'orders' => $orders,
+        'orders' => $orders, 
     ], 200);
 }
+
 
 
 
@@ -128,47 +116,40 @@ public function index(Request $request)
 
 
     // 🚚 3️⃣ Salesperson assigns delivery details
-   public function assignDelivery(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'delivery_person_id' => 'required|exists:delivery_persons,id',
-            'salesperson_id' => 'nullable|exists:users,id',
-    ]);
-
+ public function assignDelivery(Request $request, $id)
+{
     $order = Order::findOrFail($id);
 
-    $deliveryPerson = DeliveryPerson::findOrFail($validated['delivery_person_id']);
-
-        /* To Know if the user is an admin or a salesperson */
-        $user = $request->user() ?? Auth::user();
-
-     $order->update([
-        'delivery_person_id' => $request->delivery_person_id,
-        'delivery_person' => $deliveryPerson->name,
-        'delivery_phone' => $deliveryPerson->phone,
-        'delivery_status' => 'sent',
-        'admin_id' => $user->role === 'admin' || $user->role === 'superadmin' ? $user->id : $order->admin_id,
-        'salesperson_id' => $user->role === 'salesperson' ? $user->id : $order->salesperson_id,
-        'status' => 'on delivery',
+    $request->validate([
+        'delivery_person_id' => 'required|exists:delivery_persons,id',
+        'salesperson_id' => 'nullable|exists:users,id',
     ]);
 
-    
+    // Treat order
+    $order->delivery_person_id = $request->delivery_person_id;
 
-    // ✅ Notify the customer
-    Notification::create([
-        'user_id' => $order->user_id,
-        'order_id' => $order->id,
-        'title' => 'Order On The Way',
-        'message' => "Your order is being delivered by {$deliveryPerson->name}.",
-        'type' => 'order_update',
-    ]);
+    // Assign accountability
+    $order->salesperson_id = $request->salesperson_id ?? null;
+    $order->admin_id = $request->salesperson_id ? null : auth()->id();
+
+    // Order is now treated
+    $order->delivery_status = 'sent';
+    $order->sent_out_at = now();
+
+    $order->save();
+
+    $order->load(['user', 'items.product', 'deliveryPerson']);
 
     return response()->json([
-        'status' => 'success',
-        'message' => 'Delivery person assigned successfully.',
-        'order' => $order->load(['user', 'items.product', 'deliveryPerson']),
+        'message' => 'Delivery assigned successfully',
+        'order' => $order
     ]);
 }
+
+
+
+
+
 
 
 

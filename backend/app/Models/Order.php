@@ -15,6 +15,8 @@ class Order extends Model
         'admin_id',
         'order_number',
         'delivery_person_id',
+        'delivery_person',
+        'delivery_phone',
         'total_price',
         'payment_method',
         'status',
@@ -24,56 +26,62 @@ class Order extends Model
         'payment_status',
     ];
 
-    /* ============================================================
-       🔹 RELATIONSHIPS
-    ============================================================ */
+    /**
+     * Fields automatically included in JSON responses.
+     */
+    protected $appends = ['delivery_person_name', 'delivery_person_phone'];
 
-    // 🧍 Customer who made the order
+   
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function admin()
-{
-    return $this->belongsTo(User::class, 'admin_id');
-}
-    // 💼 Salesperson who treated the order
+    
     public function salesperson()
     {
         return $this->belongsTo(User::class, 'salesperson_id');
     }
 
+   
+    public function admin()
+    {
+        return $this->belongsTo(User::class, 'admin_id');
+    }
 
-    // 🚚 Delivery person assigned (record in DeliveryPerson table)
+    
     public function deliveryPerson()
-{
-    return $this->belongsTo(DeliveryPerson::class, 'delivery_person_id');
-}
+    {
+        return $this->belongsTo(DeliveryPerson::class, 'delivery_person_id');
+    }
 
-protected $appends = ['delivery_person_name', 'delivery_person_phone'];
-
-public function getDeliveryPersonNameAttribute()
-{
-    return $this->deliveryPerson->name ?? $this->delivery_person ?? 'N/A';
-}
-
-public function getDeliveryPersonPhoneAttribute()
-{
-    return $this->deliveryPerson->phone ?? $this->delivery_phone ?? 'N/A';
-}
-
-
-
-    // 🛍️ Items in the order
+   
     public function items()
     {
         return $this->hasMany(OrderItem::class);
     }
 
-    // 🔔 Notifications related to the order
+    
     public function notifications()
     {
         return $this->hasMany(Notification::class);
+    }
+
+    
+
+    public function getDeliveryPersonNameAttribute()
+    {
+        if ($this->relationLoaded('deliveryPerson') && $this->deliveryPerson) {
+            return $this->deliveryPerson->name;
+        }
+        return $this->delivery_person ?? 'N/A';
+    }
+
+    public function getDeliveryPersonPhoneAttribute()
+    {
+        if ($this->relationLoaded('deliveryPerson') && $this->deliveryPerson) {
+            return $this->deliveryPerson->phone;
+        }
+        return $this->delivery_phone ?? 'N/A';
     }
 }
