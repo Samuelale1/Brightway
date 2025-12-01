@@ -11,19 +11,45 @@ const users = () => {
 
   // ✅ Fetch users count (placeholder for now)
   useEffect(() => {
-    // Replace this with your API endpoint later:
-    // fetch("http://127.0.0.1:8000/api/admin/users-summary")
-    //   .then((res) => res.json())
-    //   .then((data) => setStats(data));
+  fetchUserCounts();
+}, []);
 
-    const mockData = {
-      admins: 3,
-      salespersons: 7,
-      customers: 240,
-      deliveryPersons: 5,
-    };
-    setStats(mockData);
-  }, []);
+const fetchUserCounts = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+  const res = await fetch("http://127.0.0.1:8000/api/admin/users-count", {
+    headers: {
+      "Accept": "application/json",
+      "Authorization": `Bearer ${token}`
+    }
+  });
+    const data = await res.json();
+    setStats(data);
+
+  } 
+  catch (err) {
+    console.error("Count fetch failed:", err);
+  }
+};
+
+const UserCard = ({ title, count, color, icon }) => (
+  <div className="bg-white shadow rounded-xl p-5 hover:shadow-lg transition flex flex-col justify-between">
+    <div className="flex items-center gap-4 mb-4">
+      <div className={`p-3 rounded-full ${color}`}>{icon}</div>
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        <p className="text-gray-500 text-sm">Registered Users</p>
+      </div>
+    </div>
+    <div className="flex items-center justify-between">
+      <span className="text-2xl font-bold text-gray-700">{count}</span>
+      <button className="flex items-center text-blue-600 hover:text-blue-800 transition text-sm font-medium">
+        View All <ChevronRight size={16} className="ml-1" />
+      </button>
+    </div>
+  </div>
+);
 
   return (
     <div className="space-y-8">
@@ -65,22 +91,6 @@ const users = () => {
 };
 
 // ✅ Reusable User Card Component
-const UserCard = ({ title, count, color, icon }) => (
-  <div className="bg-white shadow rounded-xl p-5 hover:shadow-lg transition flex flex-col justify-between">
-    <div className="flex items-center gap-4 mb-4">
-      <div className={`p-3 rounded-full ${color}`}>{icon}</div>
-      <div>
-        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-        <p className="text-gray-500 text-sm">Registered Users</p>
-      </div>
-    </div>
-    <div className="flex items-center justify-between">
-      <span className="text-2xl font-bold text-gray-700">{count}</span>
-      <button className="flex items-center text-blue-600 hover:text-blue-800 transition text-sm font-medium">
-        View All <ChevronRight size={16} className="ml-1" />
-      </button>
-    </div>
-  </div>
-);
+
 
 export default users;
