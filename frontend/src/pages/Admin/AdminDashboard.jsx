@@ -22,6 +22,22 @@ const AdminDashboard = () => {
     navigate("/");
   };
 
+  // ✅ Sidebar Item Component
+const NavItem = ({ to, icon, label, isSidebarOpen }) => (
+  <NavLink
+    to={to}
+    className={({ isActive }) =>
+      `flex items-center gap-3 p-3 rounded-md transition-all hover:bg-blue-800 ${
+        isActive ? "bg-blue-700 text-yellow-300" : "text-gray-200"
+      }`
+    }
+  >
+    {icon}
+    {isSidebarOpen && <span>{label}</span>}
+  </NavLink>
+);
+
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* ✅ Sidebar */}
@@ -125,19 +141,5 @@ const AdminDashboard = () => {
   );
 };
 
-// ✅ Sidebar Item Component
-const NavItem = ({ to, icon, label, isSidebarOpen }) => (
-  <NavLink
-    to={to}
-    className={({ isActive }) =>
-      `flex items-center gap-3 p-3 rounded-md transition-all hover:bg-blue-800 ${
-        isActive ? "bg-blue-700 text-yellow-300" : "text-gray-200"
-      }`
-    }
-  >
-    {icon}
-    {isSidebarOpen && <span>{label}</span>}
-  </NavLink>
-);
 
 export default AdminDashboard;

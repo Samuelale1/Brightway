@@ -62,7 +62,7 @@ class UserController extends Controller
     {
         return response()->json([
             'status' => 'success',
-            'users' => User::select('id','name','email','phone','role','is_active')->get()
+            'users' => User::select('id','name','email','phone','role')->get()
         ]);
     }
 
@@ -124,4 +124,47 @@ class UserController extends Controller
             'new_password'=>$new
         ]);
     }
+
+        public function usersByRole(Request $request, $role)
+    {
+        $query = User::where('role', $role);
+
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'LIKE', "%{$request->search}%")
+                ->orWhere('email', 'LIKE', "%{$request->search}%")
+                ->orWhere('phone', 'LIKE', "%{$request->search}%");
+            });
+        }
+
+        return $query->select('id','name','email','phone','role','is_active')
+            ->paginate(20);
+    }
+
+    public function adminCreateUser(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string',
+            'email' => 'required|email|unique:users',
+            'phone' => 'nullable|string',
+            'role' => 'required|string',
+            'password' => 'required|string|min:6',
+        ]);
+
+        $validated['password'] = Hash::make($validated['password']);
+
+        $user = User::create($validated);
+
+        return response()->json(['status'=>'success','user'=>$user]);
+    }
+
+        public function deleteUser($id)
+    {
+        $user = User::findOrFail($id);
+        $user->delete();
+
+        return response()->json(['status'=>'success']);
+    }
+
+
 }
