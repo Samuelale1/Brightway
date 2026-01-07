@@ -13,10 +13,14 @@ return Application::configure(dirname(__DIR__))
         '/up'
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
         $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
-        
+
+        $middleware->alias([
+            'auth.api' => \App\Http\Middleware\ApiAuthenticate::class,
+        ]);
     })
+
+
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })

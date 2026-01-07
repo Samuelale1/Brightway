@@ -15,6 +15,8 @@ Route::post('/login', [AuthController::class, 'login']);
 // ------------- PUBLIC ROUTES ------------------
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/orders/{id}', [OrderController::class, 'show']);
+Route::get('/delivery-persons', [DeliveryPersonController::class, 'index']);    
+
 
 // ------------- PROTECTED ROUTES ------------------
 Route::middleware('auth:api')->group(function () {
@@ -30,6 +32,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/admin/users/{id}/role', [UserController::class, 'updateRole']);
     Route::put('/admin/users/{id}/toggle', [UserController::class, 'toggleStatus']);
     Route::put('/admin/users/{id}/reset-password', [UserController::class, 'resetPassword']);
+    Route::delete('/admin/users/{id}', [UserController::class, 'deleteUser']);
 
     // SALES
     Route::get('/sales/orders', [SalespersonController::class, 'getOrders']);
@@ -43,7 +46,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/orders/{id}/confirm-payment', [OrderController::class, 'confirmPayment']);
 
     // DELIVERY
-    Route::get('/delivery-persons', [DeliveryPersonController::class, 'index']);
+        
     Route::post('/delivery-persons', [DeliveryPersonController::class, 'store']);
 
     // REPORTS
@@ -54,3 +57,5 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/staff-performance', [ReportsController::class, 'staffPerformance']);
     });
 });
+
+

@@ -1,96 +1,111 @@
 import React, { useEffect, useState } from "react";
-import { Users, UserCog, UserCheck, Truck, ChevronRight } from "lucide-react";
+import { UserCog, UserCheck, Users as UsersIcon, Truck, ChevronRight } from "lucide-react";
+import Spinner from "../../components/Spinner";
+import UsersList from "./UsersList";
+import DeliveryPersonsList from "./DeliveryPersonsList";
 
-const users = () => {
-  const [stats, setStats] = useState({
-    admins: 0,
-    salespersons: 0,
-    customers: 0,
-    deliveryPersons: 0,
-  });
+const cardsMeta = [
+  { key: "admins", title: "Admins", color: "bg-blue-100 text-blue-700", icon: <UserCog size={20} /> },
+  { key: "salespersons", title: "Salespersons", color: "bg-purple-100 text-purple-700", icon: <UserCheck size={20} /> },
+  { key: "customers", title: "Customers", color: "bg-green-100 text-green-700", icon: <UsersIcon size={20} /> },
+  { key: "deliveryPersons", title: "Delivery Persons", color: "bg-orange-100 text-orange-700", icon: <Truck size={20} /> },
+];
 
-  // ✅ Fetch users count (placeholder for now)
+const Users = () => {
+  const [counts, setCounts] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
+
+  const token = localStorage.getItem("token");
+
   useEffect(() => {
-  fetchUserCounts();
-}, []);
+    fetchCounts();
+  }, []);
 
-const fetchUserCounts = async () => {
-  try {
-    const token = localStorage.getItem("token");
+  const fetchCounts = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/admin/users-count", {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      });
 
-  const res = await fetch("http://127.0.0.1:8000/api/admin/users-count", {
-    headers: {
-      "Accept": "application/json",
-      "Authorization": `Bearer ${token}`
+      const data = await res.json();
+      setCounts(data);
+    } catch (err) {
+      console.error("Error fetching counts:", err);
+    } finally {
+      setLoading(false);
     }
-  });
-    const data = await res.json();
-    setStats(data);
+  };
 
-  } 
-  catch (err) {
-    console.error("Count fetch failed:", err);
-  }
-};
-
-const UserCard = ({ title, count, color, icon }) => (
-  <div className="bg-white shadow rounded-xl p-5 hover:shadow-lg transition flex flex-col justify-between">
-    <div className="flex items-center gap-4 mb-4">
-      <div className={`p-3 rounded-full ${color}`}>{icon}</div>
-      <div>
-        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-        <p className="text-gray-500 text-sm">Registered Users</p>
+  if (loading || !counts) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spinner size={28} />
       </div>
-    </div>
-    <div className="flex items-center justify-between">
-      <span className="text-2xl font-bold text-gray-700">{count}</span>
-      <button className="flex items-center text-blue-600 hover:text-blue-800 transition text-sm font-medium">
-        View All <ChevronRight size={16} className="ml-1" />
-      </button>
-    </div>
-  </div>
-);
+    );
+  }
+
+ if (selectedRole === "deliveryPersons") {
+  return (
+    <DeliveryPersonsList
+      onBack={() => setSelectedRole(null)}
+    />
+  );
+}
+
+if (selectedRole) {
+  return (
+    <UsersList
+      role={selectedRole}
+      onBack={() => setSelectedRole(null)}
+      refreshCounts={fetchCounts}
+    />
+  );
+}
+
+
+if (selectedRole) {
+  return (
+    <UsersList
+      role={selectedRole}
+      onBack={() => setSelectedRole(null)}
+      refreshCounts={fetchCounts}
+    />
+  );
+}
+
 
   return (
     <div className="space-y-8">
-      {/* ✅ Page Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold text-gray-700">User Overview</h2>
-        <p className="text-gray-500 text-sm">View all user roles and activity</p>
-      </div>
+      <h2 className="text-2xl font-semibold text-gray-700">User Overview</h2>
 
-      {/* ✅ User Role Cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <UserCard
-          title="Admins"
-          count={stats.admins}
-          color="bg-blue-100 text-blue-700"
-          icon={<UserCog size={24} />}
-        />
-        <UserCard
-          title="Salespersons"
-          count={stats.salespersons}
-          color="bg-purple-100 text-purple-700"
-          icon={<UserCheck size={24} />}
-        />
-        <UserCard
-          title="Customers"
-          count={stats.customers}
-          color="bg-green-100 text-green-700"
-          icon={<Users size={24} />}
-        />
-        <UserCard
-          title="Delivery Persons"
-          count={stats.deliveryPersons}
-          color="bg-orange-100 text-orange-700"
-          icon={<Truck size={24} />}
-        />
+        {cardsMeta.map((c) => (
+          <div
+            key={c.key}
+            onClick={() => setSelectedRole(c.key)}
+            className="bg-white shadow rounded-xl p-5 hover:shadow-lg transition cursor-pointer"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className={`p-3 rounded-full ${c.color}`}>{c.icon}</div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">{c.title}</h3>
+                <p className="text-gray-500 text-sm">Registered Users</p>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-2xl font-bold text-gray-700">
+                {counts[c.key]}
+              </span>
+              <ChevronRight size={17} className="text-blue-700" />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 };
 
-// ✅ Reusable User Card Component
-
-
-export default users;
+export default Users;
