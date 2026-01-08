@@ -8,10 +8,15 @@ use App\Models\Product;
 class ProductController extends Controller
 {
     // ✅ Get all products
+    // ✅ Get all products
     public function index()
     {
-        $products = Product::latest()->get();
-        return response()->json($products);
+        try {
+            $products = Product::latest()->get();
+            return response()->json($products);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     // ✅ Add a new product

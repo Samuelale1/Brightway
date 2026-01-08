@@ -8,6 +8,12 @@ const Customer = () => {
   const [showOrders, setShowOrders] = useState(false); // ✅ New: "My Orders" Modal
   const [orders, setOrders] = useState([]); // ✅ New: User's orders
   const [darkMode, setDarkMode] = useState(false); // ✅ New: Dark Mode
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  const categories = [
+    "All", "Breakfast", "Lunch", "Dinner", "Swallow", "Drinks", 
+    "Rice", "Beverages", "Snacks", "Proteins", "Others"
+  ];
   
   const [checkoutData, setCheckoutData] = useState({
     address: "",
@@ -28,6 +34,13 @@ const Customer = () => {
   const toggleTheme = () => {
     setDarkMode(!darkMode);
     localStorage.setItem("theme", !darkMode ? "dark" : "light");
+  };
+
+  const handleLogout = () => {
+    if (window.confirm("Are you sure you want to logout?")) {
+      localStorage.clear();
+      window.location.href = "/";
+    }
   };
 
   const fetchProducts = async () => {
@@ -99,6 +112,11 @@ const Customer = () => {
   const removeFromCart = (id) => {
     setCart((prev) => prev.filter((item) => item.id !== id));
   };
+
+  // ✅ Filter products by category
+  const filteredProducts = selectedCategory === "All" 
+    ? products 
+    : products.filter(p => p.category === selectedCategory || (!p.category && selectedCategory === "Others")); // Fallback for null category
 
   // ✅ Calculate total
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -196,6 +214,10 @@ const Customer = () => {
                     </span>
                 )}
             </button>
+
+             <button onClick={handleLogout} className={`p-2 rounded-full transition hover:bg-red-100 text-red-500`} title="Logout">
+                🚪
+            </button>
         </div>
       </nav>
 
@@ -209,6 +231,25 @@ const Customer = () => {
             <p className={`text-lg ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Delivered fresh to your doorstep in minutes.</p>
         </header>
 
+        {/* Categories */}
+        <div className="flex flex-wrap gap-3 justify-center mb-10">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-5 py-2 rounded-full font-medium transition-all duration-300 ${
+                selectedCategory === cat
+                  ? "bg-amber-500 text-white shadow-lg shadow-amber-500/30 scale-105"
+                  : darkMode 
+                    ? "bg-slate-800 text-gray-400 hover:bg-slate-700 hover:text-white"
+                    : "bg-white text-gray-600 hover:bg-gray-100 hover:text-slate-900 border border-gray-100"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
         {/* Product Grid */}
         {loading ? (
              <div className="flex justify-center py-20">
@@ -216,8 +257,26 @@ const Customer = () => {
              </div>
         ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
                 <div key={product.id} className={`group relative rounded-3xl overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl ${darkMode ? "bg-slate-800 shadow-slate-900/50" : "bg-white shadow-xl shadow-gray-200/50"}`}>
+                    
+                    {/* Availability Badge */}
+                    <div className="absolute top-4 right-4 z-10">
+                      {product.availability === 'wait_time' ? (
+                         <span className="bg-orange-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                           ⏳ Wait Time
+                         </span>
+                      ) : product.availability === 'unavailable' ? (
+                         <span className="bg-red-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                           ❌ Unavailable
+                         </span>
+                      ) : (
+                         <span className="bg-emerald-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                           ✅ Available
+                         </span>
+                      )}
+                    </div>
+                    
                     <div className="h-56 overflow-hidden">
                         {product.image ? (
                             <img src={`http://127.0.0.1:8000/storage/${product.image}`} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -233,9 +292,16 @@ const Customer = () => {
                         </div>
                         <p className={`text-sm mb-6 line-clamp-2 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{product.description || "Fresh and delicious."}</p>
                         
-                        <button onClick={() => addToCart(product)} className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all active:scale-95 flex justify-center items-center gap-2">
-                            <span>Add to Cart</span>
-                            <span className="text-xl">+</span>
+                        <button 
+                           onClick={() => addToCart(product)} 
+                           disabled={product.availability === 'unavailable'}
+                           className={`w-full py-3 rounded-xl font-semibold shadow-lg transition-all active:scale-95 flex justify-center items-center gap-2
+                           ${product.availability === 'unavailable' 
+                             ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
+                             : "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-orange-500/30 hover:shadow-orange-500/50"}`}
+                        >
+                            <span>{product.availability === 'unavailable' ? "Sold Out" : "Add to Cart"}</span>
+                            {product.availability !== 'unavailable' && <span className="text-xl">+</span>}
                         </button>
                     </div>
                 </div>

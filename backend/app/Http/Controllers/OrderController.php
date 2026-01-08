@@ -65,41 +65,56 @@ public function index(Request $request)
                 'total_price' => 'required|numeric',
             ]);
 
-            // ✅ Create main order
-            $order = Order::create([
-                'user_id' => Auth::id() ?? $request->user_id,
-                'order_number' => 'ORD-' . strtoupper(uniqid()),
-                'payment_method' => $validated['payment_method'],
-                'status' => $validated['payment_method'] === 'card' ? 'paid' : 'on delivery',
-                'payment_status' => $validated['payment_method'] === 'card' ? 'paid' : 'unpaid',
-                'delivery_status' => 'pending',
-                'total_price' => $validated['total_price'],
-                'address' => $validated['address'],
-                'phone_number' => $validated['phone_number'],
-            ]);
+            $order = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $request) {
+                // ✅ Create main order
+                $order = Order::create([
+                    'user_id' => Auth::id() ?? $request->user_id,
+                    'order_number' => 'ORD-' . strtoupper(uniqid()),
+                    'payment_method' => $validated['payment_method'],
+                    'status' => $validated['payment_method'] === 'card' ? 'paid' : 'on delivery',
+                    'payment_status' => $validated['payment_method'] === 'card' ? 'paid' : 'unpaid',
+                    'delivery_status' => 'pending',
+                    'total_price' => $validated['total_price'],
+                    'address' => $validated['address'],
+                    'phone_number' => $validated['phone_number'],
+                ]);
 
-            // ✅ Create items
-            foreach ($validated['items'] as $item) {
-                $product = Product::find($item['product_id']);
-                if ($product) {
-                    OrderItem::create([
-                        'order_id' => $order->id,
-                        'product_id' => $product->id,
-                        'quantity' => $item['quantity'],
-                        'price' => $product->price,
-                        'subtotal' => $product->price * $item['quantity'],
-                    ]);
+                // ✅ Bulk create items to reduce DB queries
+                $orderItems = [];
+                $productIds = array_column($validated['items'], 'product_id');
+                $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+                $validItems = [];
+                foreach ($validated['items'] as $item) {
+                    $product = $products->get($item['product_id']);
+                    if ($product) {
+                        $orderItems[] = [
+                            'order_id' => $order->id,
+                            'product_id' => $product->id,
+                            'quantity' => $item['quantity'],
+                            'price' => $product->price,
+                            'subtotal' => $product->price * $item['quantity'],
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
                 }
-            }
 
-            // ✅ Notify Admin
-            Notification::create([
-                'user_id' => 1,
-                'order_id' => $order->id,
-                'title' => 'New Order Placed',
-                'message' => 'A new order has been placed and needs processing.',
-                'type' => 'order_update',
-            ]);
+                if (!empty($orderItems)) {
+                    OrderItem::insert($orderItems);
+                }
+
+                // ✅ Notify Admin
+                Notification::create([
+                    'user_id' => 1,
+                    'order_id' => $order->id,
+                    'title' => 'New Order Placed',
+                    'message' => 'A new order has been placed and needs processing.',
+                    'type' => 'order_update',
+                ]);
+
+                return $order;
+            });
 
             return response()->json([
                 'status' => 'success',
