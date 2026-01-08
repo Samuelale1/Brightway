@@ -155,22 +155,42 @@ const Products = () => {
     }
   };
 
+  // ✅ Filter items based on search
+  const [searchTerm, setSearchTerm] = useState("");
+  const filteredProducts = products.filter(p => 
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      p.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="relative">
+    <div className="relative animate-fade-in-up">
       {/* ✅ Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-gray-700">Manage Products</h2>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-        >
-          + Add Product
-        </button>
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <div>
+           <h2 className="text-2xl font-semibold text-gray-700">Manage Products</h2>
+           <p className="text-sm text-gray-500">Add, edit, or remove products from your store.</p>
+        </div>
+
+        <div className="flex gap-4 w-full sm:w-auto">
+             <input 
+                type="text" 
+                placeholder="🔍 Search products..." 
+                className="border border-gray-200 p-2 rounded-lg w-full sm:w-64 focus:ring-2 focus:ring-blue-500 outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+             />
+            <button
+            onClick={() => setShowModal(true)}
+            className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition shadow-lg shrink-0"
+            >
+            + Add Product
+            </button>
+        </div>
       </div>
 
       {/* ✅ Product Table */}
       <div className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
-        {products.length > 0 ? (
+        {filteredProducts.length > 0 ? (
           <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
             <thead>
@@ -186,7 +206,7 @@ const Products = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 text-slate-600 text-sm">
-              {products.map((p, index) => (
+              {filteredProducts.map((p, index) => (
                 <tr key={p.id} className="hover:bg-amber-50/50 transition duration-200">
                   <td className="p-4 font-medium text-slate-400">{index + 1}</td>
                   <td className="p-4">

@@ -8,6 +8,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\DeliveryPersonController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AdminController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -27,6 +28,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/profile/password', [ProfileController::class, 'changePassword']);
 
     // ADMIN USER MANAGEMENT
+    Route::get('/admin/dashboard', [AdminController::class, 'dashboardStats']);
     Route::get('/admin/users', [UserController::class, 'allUsers']);
     Route::get('/admin/users-count', [UserController::class, 'userCounts']);
     Route::put('/admin/users/{id}/role', [UserController::class, 'updateRole']);
