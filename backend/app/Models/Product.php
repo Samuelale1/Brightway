@@ -16,6 +16,8 @@ class Product extends Model
         'price',
         'quantity',
         'image',
+        'category',      // New
+        'availability',  // New: 'available', 'wait_time'
         'added_by',  // salesperson or admin who added the product
         'is_deleted', // for soft delete logic
     ];

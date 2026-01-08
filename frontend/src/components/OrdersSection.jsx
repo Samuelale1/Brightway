@@ -15,7 +15,13 @@ const OrdersSection = () => {
   // ✅ Fetch all orders
   const fetchOrders = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/orders");
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://127.0.0.1:8000/api/orders", {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json"
+        }
+      });
       const data = await res.json();
       if (res.ok) setOrders(data.orders || []);
       else console.error("Failed to load orders:", data);
@@ -27,7 +33,13 @@ const OrdersSection = () => {
   // ✅ Fetch delivery persons
   const fetchDeliveryPersons = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/delivery-persons");
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://127.0.0.1:8000/api/delivery-persons", {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json"
+        }
+      });
       const data = await res.json();
       if (res.ok) setDeliveryPersons(data.delivery_persons || []);
       else console.error("Failed to load delivery persons:", data);
@@ -63,11 +75,16 @@ const OrdersSection = () => {
     setMessage("");
 
     try {
+      const token = localStorage.getItem("token");
       const res = await fetch(
         `http://127.0.0.1:8000/api/orders/${selectedOrder.id}/assign-delivery`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json"
+          },
           body: JSON.stringify({
             delivery_person_id: deliveryPersonId,
             salesperson_id: user?.id,
@@ -95,9 +112,17 @@ const OrdersSection = () => {
 
   const handleConfirmPayment = async (orderId) => {
     try {
+      const token = localStorage.getItem("token");
       const res = await fetch(
         `http://127.0.0.1:8000/api/orders/${orderId}/confirm-payment`,
-        { method: "PUT", headers: { "Content-Type": "application/json" } }
+        { 
+          method: "PUT", 
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json"
+          } 
+        }
       );
 
       const data = await res.json();
@@ -114,122 +139,133 @@ const OrdersSection = () => {
     }
   };
 
-  // ✅ Status Colors
+  // ✅ Status Colors (Updated for premium look)
   const getDeliveryStatusColor = (status) => {
     switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "sent":
-        return "bg-blue-100 text-blue-800";
-      case "delivered":
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+      case "pending": return "bg-amber-100 text-amber-700 border border-amber-200";
+      case "sent": return "bg-blue-100 text-blue-700 border border-blue-200";
+      case "delivered": return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+      default: return "bg-gray-100 text-gray-600 border border-gray-200";
     }
   };
 
   const getPaymentStatusColor = (status) => {
     switch (status) {
-      case "paid":
-        return "bg-green-100 text-green-800";
-      case "unpaid":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+      case "paid": return "bg-emerald-50 text-emerald-600 border border-emerald-100";
+      case "unpaid": return "bg-rose-50 text-rose-600 border border-rose-100";
+      default: return "bg-gray-50 text-gray-600";
     }
   };
 
   return (
     <div className="p-4">
       {/* ✅ Tabs */}
-      <div className="flex space-x-4 mb-6">
+      <div className="flex space-x-2 mb-8 bg-white p-1 rounded-xl shadow-sm border border-gray-100 w-fit">
         {["pending", "treated", "delivered"].map((tab) => (
           <button
-            key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-md font-medium transition 
-              ${ activeTab === tab ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            key={tab} 
+            onClick={() => setActiveTab(tab)} 
+            className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-300
+              ${ activeTab === tab 
+                ? "bg-slate-800 text-white shadow-md transform scale-[1.02]"
+                : "text-gray-500 hover:text-slate-800 hover:bg-gray-50"
             }`}
           >
-            {tab === "pending" ? "⏳ Pending" : tab === "treated" ? "🚚 Treated" : "✅ Delivered"}
+            {tab === "pending" ? "⏳ Pending" : tab === "treated" ? "🚚 On Delivery" : "✅ Delivered"}
           </button>
         ))}
       </div>
 
       {/* ✅ Orders Grid */}
       {filteredOrders.length === 0 ? (
-        <p className="text-gray-500 text-center mt-10">
-          No {activeTab} orders at the moment.
-        </p>
+        <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-dashed border-gray-300">
+           <span className="text-4xl mb-4">🍽️</span>
+           <p className="text-gray-500 font-medium">No {activeTab} orders found.</p>
+        </div>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredOrders.map((order) => (
             <div
               key={order.id}
-              className="bg-white rounded-xl shadow p-4 hover:shadow-lg transition relative"
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 group relative overflow-hidden"
             >
-              {/* Status Badges */}
-              <div className="absolute top-2 right-2 flex flex-col items-end space-y-1">
-                <span
-                  className={`text-xs px-2 py-1 rounded font-medium ${getDeliveryStatusColor(
-                    order.delivery_status
-                  )}`}
-                >
-                  {order.delivery_status || "pending"}
-                </span>
-                <span
-                  className={`text-xs px-2 py-1 rounded font-medium ${getPaymentStatusColor(
-                    order.payment_status
-                  )}`}
-                >
-                  {order.payment_status || "unpaid"}
-                </span>
+              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-amber-400 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+              {/* Header */}
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                   <h3 className="font-bold text-lg text-gray-800 mb-1">
+                    Order #{order.order_number}
+                  </h3>
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
+                    {new Date(order.created_at).toLocaleDateString()} • {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                   <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wide ${getDeliveryStatusColor(order.delivery_status)}`}>
+                    {order.delivery_status || "PENDING"}
+                  </span>
+                   <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wide ${getPaymentStatusColor(order.payment_status)}`}>
+                    {order.payment_status || "UNPAID"}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex justify-between items-center mb-2 mt-6">
-                <h3 className="font-semibold text-gray-800">
-                  Order #{order.order_number}
-                </h3>
-              </div>
+             {/* Customer Info */}
+             <div className="flex items-center gap-3 mb-6 p-3 bg-gray-50 rounded-xl">
+               <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold">
+                 {order.user?.name?.[0]}
+               </div>
+               <div>
+                 <p className="text-sm font-semibold text-gray-800">{order.user?.name}</p>
+                 <p className="text-xs text-gray-500 truncate max-w-[150px]">{order.address}</p>
+               </div>
+               <div className="ml-auto text-right">
+                  <p className="text-sm font-bold text-slate-800">₦{Number(order.total_price).toLocaleString()}</p>
+                  <p className="text-xs text-slate-400">Total</p>
+               </div>
+             </div>
 
-              <p className="text-gray-600 text-sm mb-1">
-                Customer: {order.user?.name}
-              </p>
-              <p className="text-gray-600 text-sm mb-1">
-                Address: {order.address}
-              </p>
-              <p className="text-gray-600 text-sm mb-2">
-                Total: ₦{order.total_price}
-              </p>
-
-              <div className="border-t border-gray-200 pt-2 mb-3">
-                <p className="text-sm font-medium mb-1">Items:</p>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  {order.items?.map((item) => (
-                    <li key={item.id}>
-                      - {item.product.name} × {item.quantity}
-                    </li>
+              {/* Items Preview */}
+              <div className="mb-6">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Items</p>
+                <div className="space-y-2">
+                  {order.items?.slice(0, 3).map((item) => (
+                    <div key={item.id} className="flex justify-between text-sm">
+                      <span className="text-gray-600 line-clamp-1">{item.product.name}</span>
+                      <span className="text-gray-400 font-medium">x{item.quantity}</span>
+                    </div>
                   ))}
-                </ul>
+                  {order.items?.length > 3 && (
+                    <p className="text-xs text-blue-500 font-medium">+ {order.items.length - 3} more items...</p>
+                  )}
+                </div>
               </div>
 
+              {/* Actions */}
               {activeTab === "pending" && (
                 <button
                   onClick={() => setSelectedOrder(order)}
-                  className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+                  className="w-full py-3 rounded-xl bg-slate-900 text-white font-medium hover:bg-slate-800 active:scale-[0.98] transition-all shadow-lg shadow-slate-200"
                 >
-                  Treat Order
+                  Treat Order →
                 </button>
               )}
 
-              {activeTab === "treated" &&
-                order.payment_status !== "paid" && (
+              {activeTab === "treated" && order.payment_status !== "paid" && (
                   <button
                     onClick={() => handleConfirmPayment(order.id)}
-                    className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
+                    className="w-full py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 active:scale-[0.98] transition-all shadow-lg shadow-emerald-200"
                   >
                     Confirm Payment
                   </button>
                 )}
+               
+               {activeTab === "treated" && order.payment_status === "paid" && (
+                 <div className="w-full py-3 text-center text-sm font-medium text-emerald-600 bg-emerald-50 rounded-xl">
+                   Payment Confirmed ✓
+                 </div>
+               )}
             </div>
           ))}
         </div>

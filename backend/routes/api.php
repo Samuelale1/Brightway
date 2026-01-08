@@ -15,7 +15,7 @@ Route::post('/login', [AuthController::class, 'login']);
 // ------------- PUBLIC ROUTES ------------------
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/orders/{id}', [OrderController::class, 'show']);
-Route::get('/delivery-persons', [DeliveryPersonController::class, 'index']);    
+  
 
 
 // ------------- PROTECTED ROUTES ------------------
@@ -46,7 +46,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/orders/{id}/confirm-payment', [OrderController::class, 'confirmPayment']);
 
     // DELIVERY
-        
+    Route::get('/delivery-persons', [DeliveryPersonController::class, 'index']);   
     Route::post('/delivery-persons', [DeliveryPersonController::class, 'store']);
 
     // REPORTS
