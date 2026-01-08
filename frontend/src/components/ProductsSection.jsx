@@ -24,7 +24,13 @@ const [selectedProduct, setSelectedProduct] = useState(null);
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/products");
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://127.0.0.1:8000/api/products", {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json"
+        }
+      });
       const data = await res.json();
       setProducts(data);
     } catch (err) {
@@ -61,8 +67,13 @@ const [selectedProduct, setSelectedProduct] = useState(null);
     if (newProduct.image) form.append("image", newProduct.image);
 
     // don't set Content-Type header — browser will do it for FormData
+    const token = localStorage.getItem("token");
     const res = await fetch("http://127.0.0.1:8000/api/products", {
       method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/json"
+      },
       body: form,
     });
 
@@ -251,8 +262,13 @@ const [selectedProduct, setSelectedProduct] = useState(null);
             // Spoof PUT for Laravel
             form.append("_method", "PUT");
 
+            const token = localStorage.getItem("token");
             const res = await fetch(`http://127.0.0.1:8000/api/products/${selectedProduct.id}`, {
               method: "POST", // ✅ not PUT
+              headers: {
+                "Authorization": `Bearer ${token}`,
+                "Accept": "application/json"
+              },
               body: form,
             });
 
@@ -344,8 +360,13 @@ const [selectedProduct, setSelectedProduct] = useState(null);
         </button>
         <button
           onClick={async () => {
+            const token = localStorage.getItem("token");
             const res = await fetch(`http://127.0.0.1:8000/api/products/${selectedProduct.id}`, {
               method: "DELETE",
+              headers: {
+                "Authorization": `Bearer ${token}`,
+                "Accept": "application/json"
+              }
             });
             const data = await res.json();
             if (res.ok) {

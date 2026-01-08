@@ -14,9 +14,16 @@ const Orders = () => {
   
 
   // ✅ Fetch all orders
+  // ✅ Fetch all orders
   const fetchOrders = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/orders");
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://127.0.0.1:8000/api/orders", {
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json"
+        }
+      });
       const data = await res.json();
       if (res.ok) setOrders(data.orders || []);
     } catch (err) {
@@ -25,9 +32,16 @@ const Orders = () => {
   };
 
   // ✅ Fetch delivery persons
+  // ✅ Fetch delivery persons
   const fetchDeliveryPersons = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/delivery-persons");
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://127.0.0.1:8000/api/delivery-persons", {
+         headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json"
+         }
+      });
       const data = await res.json();
       if (res.ok) setDeliveryPersons(data.delivery_persons || []);
     } catch (err) {
@@ -60,7 +74,10 @@ const Orders = () => {
         `http://127.0.0.1:8000/api/orders/${selectedOrder.id}/assign-delivery`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+             "Content-Type": "application/json",
+             "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          },
           body: JSON.stringify({
             delivery_person_id: deliveryPersonId,
             salesperson_id: user?.id ?? null, // optional for admin
@@ -89,7 +106,10 @@ const Orders = () => {
         `http://127.0.0.1:8000/api/orders/${orderId}/confirm-payment`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          },
         }
       );
       const data = await res.json();
@@ -109,98 +129,118 @@ const Orders = () => {
 
 
   // ✅ Status color helpers
-  const colorClass = {
-    pending: "bg-yellow-100 text-yellow-800",
-    sent: "bg-blue-100 text-blue-800",
-    delivered: "bg-green-100 text-green-800",
-  };
-  const payClass = {
-    paid: "bg-green-100 text-green-800",
-    unpaid: "bg-red-100 text-red-800",
+  const getStatusColor = (status) => {
+      switch(status) {
+          case 'pending': return 'bg-amber-100 text-amber-700 border-amber-200';
+          case 'sent': return 'bg-blue-100 text-blue-700 border-blue-200';
+          case 'delivered': 
+          case 'completed': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+          default: return 'bg-gray-100 text-gray-600 border-gray-200';
+      }
   };
 
-  
-
+  const getPaymentColor = (status) => {
+      return status === 'paid' 
+          ? 'bg-emerald-100 text-emerald-700 border-emerald-200' 
+          : 'bg-rose-100 text-rose-700 border-rose-200';
+  };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-semibold text-gray-700 mb-6">Orders</h2>
-
-      {/* Tabs */}
-      <div className="flex gap-3 mb-6">
-        {["pending", "sent", "delivered"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-md font-medium transition ${
-              activeTab === tab
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            {tab === "pending"
-              ? "⏳ Pending"
-              : tab === "sent"
-              ? "🚚 Sent"
-              : "✅ Delivered"}
-          </button>
-        ))}
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in-up pb-12">
+      
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">📦 Order Management</h1>
+            <p className="text-slate-500 mt-1">Track and manage customer orders efficiently.</p>
+          </div>
+          
+          {/* Tabs */}
+          <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-200 flex">
+            {["pending", "sent", "delivered"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-6 py-2 rounded-lg font-bold text-sm transition-all duration-200 ${
+                  activeTab === tab
+                    ? "bg-slate-800 text-white shadow-md"
+                    : "text-gray-500 hover:text-slate-700 hover:bg-gray-50"
+                }`}
+              >
+                {tab === "pending"
+                  ? "⏳ Pending"
+                  : tab === "sent"
+                  ? "🚚 Sent"
+                  : "✅ Delivered"}
+              </button>
+            ))}
+          </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="bg-white p-6 rounded-lg shadow">
+      {/* Orders Table Card */}
+      <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
         {filteredOrders.length > 0 ? (
-          <table className="w-full text-sm text-left text-gray-600">
-            <thead className="text-xs uppercase bg-gray-50">
-              <tr>
-                <th className="px-4 py-3">Order No</th>
-                <th className="px-4 py-3">Customer</th>
-                <th className="px-4 py-3">Total</th>
-                <th className="px-4 py-3">Payment</th>
-                <th className="px-4 py-3">Delivery</th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">{order.order_number}</td>
-                  <td className="px-4 py-3">{order.user?.name}</td>
-                  <td className="px-4 py-3">₦{order.total_price}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-1 rounded font-medium ${
-                        payClass[order.payment_status] || "bg-gray-100"
-                      }`}
-                    >
-                      {order.payment_status || "unpaid"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-1 rounded font-medium ${
-                        colorClass[order.delivery_status] || "bg-gray-100"
-                      }`}
-                    >
-                      {order.delivery_status || "pending"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => setSelectedOrder(order)}
-                      className="text-blue-600 hover:underline"
-                    >
-                      View / Manage
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                <tr className="bg-gray-50/50 border-b border-gray-100 text-gray-400 text-xs uppercase tracking-wider">
+                    <th className="p-5 font-bold">Order No</th>
+                    <th className="p-5 font-bold">Customer</th>
+                    <th className="p-5 font-bold">Items</th>
+                    <th className="p-5 font-bold text-right">Total</th>
+                    <th className="p-5 font-bold text-center">Payment</th>
+                    <th className="p-5 font-bold text-center">Status</th>
+                    <th className="p-5 font-bold text-right">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="text-sm text-slate-600 divide-y divide-gray-50">
+                {filteredOrders.map((order) => (
+                    <tr key={order.id} className="hover:bg-blue-50/30 transition duration-200 group">
+                    <td className="p-5 font-bold text-slate-800">#{order.order_number}</td>
+                    <td className="p-5">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500">
+                                {order.user?.name?.charAt(0) || 'U'}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-semibold text-slate-700">{order.user?.name}</span>
+                                <span className="text-xs text-gray-400">{order.address?.substring(0, 15)}...</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td className="p-5 text-gray-500">
+                        {order.items?.length || 0} items
+                    </td>
+                    <td className="p-5 font-bold text-slate-800 text-right">₦{Number(order.total_price).toLocaleString()}</td>
+                    <td className="p-5 text-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getPaymentColor(order.payment_status)}`}>
+                        {order.payment_status || "unpaid"}
+                        </span>
+                    </td>
+                    <td className="p-5 text-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(order.delivery_status || 'pending')}`}>
+                        {order.delivery_status || "pending"}
+                        </span>
+                    </td>
+                    <td className="p-5 text-right">
+                        <button
+                        onClick={() => setSelectedOrder(order)}
+                        className="text-blue-600 hover:text-blue-800 font-bold text-xs bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition"
+                        >
+                        Manage ➝
+                        </button>
+                    </td>
+                    </tr>
+                ))}
+                </tbody>
+            </table>
+          </div>
         ) : (
-          <p className="text-center text-gray-500 py-10">
-            No {activeTab} orders found.
-          </p>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+             <div className="text-6xl mb-4 opacity-50">📦</div>
+             <h3 className="text-xl font-bold text-slate-700">No {activeTab} orders found</h3>
+             <p className="text-gray-400">Wait for new orders to come in!</p>
+          </div>
         )}
       </div>
 
@@ -211,98 +251,122 @@ const Orders = () => {
         title={`Order #${selectedOrder?.order_number}`}
       >
         {selectedOrder && (
-          <div className="space-y-3 text-sm text-gray-700">
-            <p>
-              <strong>Customer:</strong> {selectedOrder.user?.name}
-            </p>
-            <p>
-              <strong>Address:</strong> {selectedOrder.address}
-            </p>
-            <p>
-              <strong>Phone:</strong> {selectedOrder.phone_number}
-            </p>
-
-            <div className="border-t border-gray-200 pt-3 mb-2">
-              <p className="font-medium mb-2">Items:</p>
-              <ul className="list-disc ml-6">
-                {selectedOrder.items?.map((item) => (
-                  <li key={item.id}>
-                    {item.product.name} × {item.quantity}
-                  </li>
-                ))}
-              </ul>
+          <div className="space-y-6">
+            
+            {/* Customer Details */}
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Customer Details</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p className="text-gray-500 text-xs">Name</p>
+                        <p className="font-semibold text-slate-700">{selectedOrder.user?.name}</p>
+                    </div>
+                    <div>
+                        <p className="text-gray-500 text-xs">Phone</p>
+                        <p className="font-semibold text-slate-700">{selectedOrder.phone_number}</p>
+                    </div>
+                    <div className="col-span-2">
+                        <p className="text-gray-500 text-xs">Delivery Address</p>
+                        <p className="font-semibold text-slate-700">{selectedOrder.address}</p>
+                    </div>
+                </div>
             </div>
 
-            {/* ✅ Pending: Assign Delivery */}
-            {activeTab === "pending" && (
-              <form onSubmit={handleAssignDelivery} className="space-y-3">
-                <label className="text-sm font-medium">
-                  Assign Delivery Person:
-                </label>
-                <select
-                  value={deliveryPersonId}
-                  onChange={(e) => setDeliveryPersonId(e.target.value)}
-                  required
-                  className="w-full border p-2 rounded"
-                >
-                  <option value="">-- Select Delivery Person --</option>
-                  {deliveryPersons.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.phone})
-                    </option>
-                  ))}
-                </select>
+            {/* Order Items */}
+            <div>
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Order Items</h4>
+                <div className="space-y-3">
+                    {selectedOrder.items?.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center p-3 bg-white border border-gray-100 rounded-lg shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-slate-100 rounded-md flex items-center justify-center text-lg">🍲</div>
+                            <div>
+                                <p className="font-bold text-slate-700">{item.product.name}</p>
+                                <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                            </div>
+                        </div>
+                        <p className="font-bold text-slate-700">₦{Number(item.subtotal || 0).toLocaleString()}</p>
+                    </div>
+                    ))}
+                </div>
+                <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
+                    <span className="font-bold text-gray-500">Total Amount</span>
+                    <span className="text-xl font-extrabold text-blue-600">₦{Number(selectedOrder.total_price).toLocaleString()}</span>
+                </div>
+            </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-                >
-                  {loading ? "Assigning..." : "Confirm"}
-                </button>
-              </form>
-            )}
+            {/* Actions */}
+            <div className="pt-2">
+                {/* ✅ Pending: Assign Delivery */}
+                {activeTab === "pending" && (
+                <form onSubmit={handleAssignDelivery} className="space-y-4">
+                    <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-2">
+                        Assign Delivery Person
+                        </label>
+                        <select
+                        value={deliveryPersonId}
+                        onChange={(e) => setDeliveryPersonId(e.target.value)}
+                        required
+                        className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        >
+                        <option value="">-- Select Person --</option>
+                        {deliveryPersons.map((p) => (
+                            <option key={p.id} value={p.id}>
+                            {p.name} ({p.phone})
+                            </option>
+                        ))}
+                        </select>
+                    </div>
 
-            {/* ✅ Sent: Confirm Payment */}
-            {/* ✅ Sent: Confirm Payment */}
-{activeTab === "sent" && (
-  <div className="flex flex-col gap-3">
-   <p>
-  <strong>Delivery Person:</strong>{" "}
-  {selectedOrder.delivery_person_name || "N/A"}
-</p>
-<p>
-  <strong>Delivery Phone:</strong>{" "}
-  {selectedOrder.delivery_person_phone || "N/A"}
-</p>
+                    <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition transform active:scale-95"
+                    >
+                    {loading ? "Assigning..." : "Confirm Assignment"}
+                    </button>
+                </form>
+                )}
 
-    <button
-      onClick={() => handleConfirmPayment(selectedOrder.id)}
-      className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
-    >
-      Confirm Payment
-    </button>
-  </div>
-)}
+                {/* ✅ Sent: Confirm Payment */}
+                {activeTab === "sent" && (
+                <div className="space-y-4">
+                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <p className="text-sm text-blue-800 mb-1">
+                            <strong>Delivery Person:</strong> {selectedOrder.delivery_person_name || "N/A"}
+                        </p>
+                        <p className="text-sm text-blue-800">
+                            <strong>Phone:</strong> {selectedOrder.delivery_person_phone || "N/A"}
+                        </p>
+                    </div>
+                
+                    <button
+                    onClick={() => handleConfirmPayment(selectedOrder.id)}
+                    className="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 transition transform active:scale-95"
+                    >
+                    ✅ Confirm Payment & Complete
+                    </button>
+                </div>
+                )}
 
-
-            {/* ✅ Delivered: Read Only */}
-            {activeTab === "delivered" && (
-              <div>
-                <p>
-                  <strong>Delivered By:</strong>{" "}
-                  {selectedOrder.delivery_person_name || "N/A"}
-                </p>
-                <p>
-                  <strong>Status:</strong> Completed
-                </p>
-              </div>
-            )}
+                {/* ✅ Delivered: Read Only */}
+                {activeTab === "delivered" && (
+                <div className="bg-green-50 p-4 rounded-xl border border-green-100 text-center">
+                    <p className="text-green-700 font-bold flex items-center justify-center gap-2">
+                        <span className="text-xl">🎉</span> Order Completed
+                    </p>
+                    <p className="text-sm text-green-600 mt-1">
+                    Delivered by {selectedOrder.delivery_person_name || "Unknown"}
+                    </p>
+                </div>
+                )}
+            </div>
 
             {message && (
-              <p className="mt-3 text-center text-green-600 font-medium">
+              <div className={`p-3 rounded-lg text-center text-sm font-bold ${message.includes("success") || message.includes("confirmed") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                 {message}
-              </p>
+              </div>
             )}
           </div>
         )}

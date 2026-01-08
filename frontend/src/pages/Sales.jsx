@@ -18,84 +18,113 @@ const Sales = () => {
   const handleBackToOrders = () => setSelectedOrderId(null);
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <aside className="w-64 bg-blue-900 text-white flex flex-col p-4 space-y-6">
-        <div className="text-center text-2xl font-semibold border-b border-gray-600 pb-3">
-          <img src="/LOGO.png" alt="Logo" className="w-20 h-20 mx-auto mb-4" />
-          <h1 className="text-yellow-400">Brightway Sales</h1>
+    <div className="flex h-screen bg-gray-50 font-sans">
+      {/* Sidebar - Premium Dark Design */}
+      <aside className="w-72 bg-slate-900 text-white flex flex-col shadow-2xl z-10">
+        <div className="p-8 flex flex-col items-center border-b border-white/10">
+          <img src="/LOGO.png" alt="Brightway" className="w-16 h-16 mb-4 drop-shadow-lg" />
+          <h1 className="text-xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
+            BRIGHTWAY
+          </h1>
+          <span className="text-xs text-gray-400 tracking-widest uppercase mt-1">Sales Dashboard</span>
         </div>
 
-        <nav className="flex flex-col space-y-2">
+        <nav className="flex-1 px-4 py-8 space-y-3">
           <button
             onClick={() => {
               setActivePage("products");
               setSelectedOrderId(null);
             }}
-            className={`p-3 rounded-md text-left hover:bg-blue-700 transition ${
-              activePage === "products" ? "bg-blue-700" : ""
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-xl transition-all duration-300 group ${
+              activePage === "products" 
+                ? "bg-gradient-to-r from-amber-500 to-orange-600 shadow-lg text-white" 
+                : "text-gray-400 hover:bg-white/5 hover:text-white"
             }`}
           >
-            🛒 Products
+            <span className="text-xl">🍔</span>
+            <span className="font-medium">Products</span>
           </button>
+
           <button
             onClick={() => {
               setActivePage("orders");
               setSelectedOrderId(null);
             }}
-            className={`p-3 rounded-md text-left hover:bg-blue-700 transition ${
-              activePage === "orders" ? "bg-blue-700" : ""
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-xl transition-all duration-300 group ${
+              activePage === "orders" 
+                ? "bg-gradient-to-r from-amber-500 to-orange-600 shadow-lg text-white" 
+                : "text-gray-400 hover:bg-white/5 hover:text-white"
             }`}
           >
-            📦 Orders
+            <span className="text-xl">📦</span>
+            <span className="font-medium">Orders</span>
           </button>
+
           <button
             onClick={() => {
               setActivePage("notifications");
               setSelectedOrderId(null);
             }}
-            className={`p-3 rounded-md text-left hover:bg-blue-700 transition ${
-              activePage === "notifications" ? "bg-blue-700" : ""
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-xl transition-all duration-300 group ${
+              activePage === "notifications" 
+                ? "bg-gradient-to-r from-amber-500 to-orange-600 shadow-lg text-white" 
+                : "text-gray-400 hover:bg-white/5 hover:text-white"
             }`}
           >
-            🔔 Notifications
+            <span className="text-xl">🔔</span>
+            <span className="font-medium">Notifications</span>
           </button>
         </nav>
 
-        <button
-          onClick={handleLogout}
-          className="mt-auto p-3 bg-gradient-to-r from-amber-200 via-cyan-500 to-cyan-200 hover:bg-red-600 rounded-md"
-        >
-          Logout
-        </button>
+        <div className="p-6 border-t border-white/10">
+          <button
+            onClick={handleLogout}
+            className="w-full py-3 px-4 bg-white/5 hover:bg-red-500/20 text-gray-300 hover:text-red-400 rounded-xl transition-colors flex items-center justify-center gap-2 font-medium border border-white/5 hover:border-red-500/30"
+          >
+            <span>🚪</span> Logout
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 overflow-auto">
-        <header className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-gray-700 capitalize">
-            {activePage}
-          </h1>
-          <div className="text-gray-600 font-medium">
-            Welcome, {user?.name || "Salesperson"}
+      <main className="flex-1 overflow-y-auto bg-gray-50/50">
+        <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-5 flex justify-between items-center z-10">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 capitalize tracking-tight">
+              {activePage}
+            </h1>
+            <p className="text-sm text-gray-500">Overview of your {activePage}</p>
+          </div>
+          
+          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold text-sm">
+              {user?.name?.[0] || "S"}
+            </div>
+            <div className="text-sm text-gray-700 font-medium">
+              {user?.name || "Salesperson"}
+            </div>
           </div>
         </header>
 
-        {/* ✅ Page logic */}
-        {activePage === "products" && <ProductsSection />}
-        {activePage === "notifications" && <NotificationsSection />}
+        <div className="p-8 max-w-7xl mx-auto">
+          {/* ✅ Page logic */}
+          <div className="animate-fade-in">
+            {activePage === "products" && <ProductsSection />}
+            {activePage === "notifications" && <NotificationsSection />}
 
-        {/* ✅ Orders logic */}
-        {activePage === "orders" && !selectedOrderId && (
-          <OrdersSection onSelectOrder={setSelectedOrderId} />
-        )}
+            {/* ✅ Orders logic */}
+            {activePage === "orders" && !selectedOrderId && (
+              <OrdersSection onSelectOrder={setSelectedOrderId} />
+            )}
 
-        {activePage === "orders" && selectedOrderId && (
-          <OrderDetails
-            orderId={selectedOrderId}
-            onBack={handleBackToOrders}
-          />
-        )}
+            {activePage === "orders" && selectedOrderId && (
+              <OrderDetails
+                orderId={selectedOrderId}
+                onBack={handleBackToOrders}
+              />
+            )}
+          </div>
+        </div>
       </main>
     </div>
   );

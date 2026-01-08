@@ -8,10 +8,15 @@ use App\Models\Product;
 class ProductController extends Controller
 {
     // ✅ Get all products
+    // ✅ Get all products
     public function index()
     {
-        $products = Product::latest()->get();
-        return response()->json($products);
+        try {
+            $products = Product::latest()->get();
+            return response()->json($products);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     // ✅ Add a new product
@@ -26,6 +31,8 @@ class ProductController extends Controller
             /* 'added_by'    => 'required|exists:users,id', */ 
             'added_by' => 'required|numeric',           // expects user id
             'image'       => 'nullable|image|mimes:jpg,jpeg,png,gif|max:4096',
+            'category'    => 'nullable|string',
+            'availability' => 'nullable|in:available,wait_time',
         ]);
 
         $imagePath = null;
@@ -68,6 +75,8 @@ public function update(Request $request, $id)
             'price'       => 'required|numeric|min:0',
             'quantity'    => 'required|numeric|min:0',
             'image'       => 'nullable|image|mimes:jpg,jpeg,png,gif|max:4096',
+            'category'    => 'nullable|string',
+            'availability' => 'nullable|in:available,wait_time',
         ]);
 
         if ($request->hasFile('image')) {

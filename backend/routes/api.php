@@ -8,6 +8,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\DeliveryPersonController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AdminController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -15,7 +16,7 @@ Route::post('/login', [AuthController::class, 'login']);
 // ------------- PUBLIC ROUTES ------------------
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/orders/{id}', [OrderController::class, 'show']);
-Route::get('/delivery-persons', [DeliveryPersonController::class, 'index']);    
+  
 
 
 // ------------- PROTECTED ROUTES ------------------
@@ -27,6 +28,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/profile/password', [ProfileController::class, 'changePassword']);
 
     // ADMIN USER MANAGEMENT
+    Route::get('/admin/dashboard', [AdminController::class, 'dashboardStats']);
     Route::get('/admin/users', [UserController::class, 'allUsers']);
     Route::get('/admin/users-count', [UserController::class, 'userCounts']);
     Route::put('/admin/users/{id}/role', [UserController::class, 'updateRole']);
@@ -46,7 +48,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/orders/{id}/confirm-payment', [OrderController::class, 'confirmPayment']);
 
     // DELIVERY
-        
+    Route::get('/delivery-persons', [DeliveryPersonController::class, 'index']);   
     Route::post('/delivery-persons', [DeliveryPersonController::class, 'store']);
 
     // REPORTS

@@ -104,6 +104,41 @@ if (selectedRole) {
           </div>
         ))}
       </div>
+
+      {/* ✅ Recent Users Table Placeholder */}
+      <div className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100">
+          <div className="flex justify-between items-center mb-6">
+             <h3 className="text-xl font-bold text-slate-800">🆕 Recent Registrations</h3>
+             <button className="text-blue-500 font-bold hover:underline">View All Users</button>
+          </div>
+          <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                  <thead className="text-xs uppercase text-gray-400 border-b border-gray-100">
+                      <tr>
+                          <th className="p-4">User</th>
+                          <th className="p-4">Role</th>
+                          <th className="p-4">Date</th>
+                          <th className="p-4 text-right">Status</th>
+                      </tr>
+                  </thead>
+                  <tbody className="text-sm text-slate-600">
+                      {[1,2,3,4,5].map((i) => (
+                          <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                              <td className="p-4 font-bold flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs">👤</div>
+                                  User {i}
+                              </td>
+                              <td className="p-4">Customer</td>
+                              <td className="p-4 text-gray-400">Jan {10 - i}, 2026</td>
+                              <td className="p-4 text-right">
+                                  <span className="bg-green-100 text-green-700 font-bold px-2 py-1 rounded text-xs">Active</span>
+                              </td>
+                          </tr>
+                      ))}
+                  </tbody>
+              </table>
+          </div>
+      </div>
     </div>
   );
 };
