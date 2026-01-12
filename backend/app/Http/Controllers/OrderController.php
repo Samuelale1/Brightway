@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Models\Notification;
 use App\Models\DeliveryPerson;
 use Illuminate\Support\Facades\Auth;
+use App\Notifications\OrderPlaced;
+use App\Notifications\OrderStatusChanged;
 
 class OrderController extends Controller
 {
@@ -104,7 +106,7 @@ public function index(Request $request)
                     OrderItem::insert($orderItems);
                 }
 
-                // ✅ Notify Admin
+                // ✅ Notify Admin (legacy database record)
                 Notification::create([
                     'user_id' => 1,
                     'order_id' => $order->id,
@@ -112,6 +114,12 @@ public function index(Request $request)
                     'message' => 'A new order has been placed and needs processing.',
                     'type' => 'order_update',
                 ]);
+
+                // ✅ Real-time notification to all admins and salespeople
+                $staffUsers = User::whereIn('role', ['admin', 'salesperson'])->get();
+                foreach ($staffUsers as $staffUser) {
+                    $staffUser->notify(new OrderPlaced($order));
+                }
 
                 return $order;
             });
@@ -205,6 +213,11 @@ public function index(Request $request)
             'message' => "Your order status has been updated to: {$validated['status']}.",
             'type' => 'order_update',
         ]);
+
+        // ✅ Real-time notification to customer
+        if ($order->user) {
+            $order->user->notify(new OrderStatusChanged($order, $validated['status']));
+        }
 
         return response()->json([
             'status' => 'success',

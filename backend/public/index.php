@@ -1,5 +1,9 @@
 <?php
 
+// Increase execution time limit to prevent timeout errors
+ini_set('max_execution_time', 120);
+set_time_limit(120);
+
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 

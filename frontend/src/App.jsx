@@ -13,48 +13,53 @@ import Products from "./pages/Admin/Products";
 import Orders from "./pages/Admin/Orders";
 import Reports from "./pages/Admin/Reports";
 import Profile from "./pages/Admin/Profile";
+import LandingPage from "./pages/LandingPage";
+import { NotificationProvider } from "./context/NotificationContext";
 
 const App = () => {
   return (
-    <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Login />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/reports" element={<Reports />} />
+    <NotificationProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/reports" element={<Reports />} />
 
-        {/* Admin Routes */}
-        <Route path="/admin/*" element={<ProtectedRoute allowedRoles={["admin", "superadmin"]}> <AdminDashboard /> </ProtectedRoute> } >
-          <Route index element={<DashboardHome />} /> 
-          <Route path="dashboard" element={<DashboardHome />} />
-          <Route path="users" element={<Users />} />
-          <Route path="products" element={<Products />} />
-          <Route path="orders" element={<Orders />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="profile" element={<Profile />} />
-        </Route>
+          {/* Admin Routes */}
+          <Route path="/admin/*" element={<ProtectedRoute allowedRoles={["admin", "superadmin"]}> <AdminDashboard /> </ProtectedRoute>} >
+            <Route index element={<DashboardHome />} />
+            <Route path="dashboard" element={<DashboardHome />} />
+            <Route path="users" element={<Users />} />
+            <Route path="products" element={<Products />} />
+            <Route path="orders" element={<Orders />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="profile" element={<Profile />} />
+          </Route>
 
-        {/* Sales Routes */}
-        <Route
-          path="/sales"
-          element={
-            <ProtectedRoute allowedRoles={["salesperson", "admin"]}>
-              <Sales />
-            </ProtectedRoute>
-          }
-        />
+          {/* Sales Routes */}
+          <Route
+            path="/sales"
+            element={
+              <ProtectedRoute allowedRoles={["salesperson", "admin"]}>
+                <Sales />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Customer Routes */}
-        <Route
-          path="/customer"
-          element={
-            <ProtectedRoute allowedRoles={["customer", "admin"]}>
-              <Customer />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </Router>
+          {/* Customer Routes */}
+          <Route
+            path="/customer"
+            element={
+              <ProtectedRoute allowedRoles={["customer", "admin"]}>
+                <Customer />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </NotificationProvider>
   );
 };
 

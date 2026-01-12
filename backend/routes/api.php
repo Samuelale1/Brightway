@@ -9,6 +9,8 @@ use App\Http\Controllers\DeliveryPersonController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PaymentController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -16,7 +18,9 @@ Route::post('/login', [AuthController::class, 'login']);
 // ------------- PUBLIC ROUTES ------------------
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/orders/{id}', [OrderController::class, 'show']);
-  
+
+// Paystack Webhook (must be public, no auth)
+Route::post('/payments/webhook', [PaymentController::class, 'webhook']);
 
 
 // ------------- PROTECTED ROUTES ------------------
@@ -50,6 +54,20 @@ Route::middleware('auth:api')->group(function () {
     // DELIVERY
     Route::get('/delivery-persons', [DeliveryPersonController::class, 'index']);   
     Route::post('/delivery-persons', [DeliveryPersonController::class, 'store']);
+
+    // PAYMENTS
+    Route::prefix('payments')->group(function () {
+        Route::post('/initialize', [PaymentController::class, 'initialize']);
+        Route::get('/verify', [PaymentController::class, 'verify']);
+    });
+
+    // NOTIFICATIONS
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::put('/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::put('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+    });
 
     // REPORTS
     Route::prefix('reports')->group(function () {

@@ -9,6 +9,7 @@ import {
   UserCircle,
   LogOut,
 } from "lucide-react"; // for icons
+import NotificationCenter from "../../components/NotificationCenter";
 
 const AdminDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -99,6 +100,9 @@ const AdminDashboard = () => {
           </div>
           
           <div className="flex items-center gap-4">
+            {/* Notification Bell */}
+            <NotificationCenter />
+            
             <div className="text-right hidden md:block">
                 <span className="block text-sm font-bold text-slate-700">{user?.name || "Admin"}</span>
                 <span className="block text-xs text-gray-500">Administrator</span>
