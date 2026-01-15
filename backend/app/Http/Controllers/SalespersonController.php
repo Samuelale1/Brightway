@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\User;
-use App\Models\Notification;
+
 
 class SalespersonController extends Controller
 {
@@ -39,13 +39,7 @@ class SalespersonController extends Controller
         ]);
 
         // ✅ Notify the customer
-        Notification::create([
-            'user_id' => $order->user_id,
-            'order_id' => $order->id,
-            'title' => 'Order Status Updated',
-            'message' => "Your order #{$order->id} is now {$order->status}.",
-            'type' => 'order_update',
-        ]);
+
 
         return response()->json([
             'status' => 'success',
@@ -55,16 +49,4 @@ class SalespersonController extends Controller
     }
 
     // ✅ Fetch notifications for salesperson
-    public function getNotifications()
-    {
-        $notifications = Notification::where('type', 'system')
-            ->orWhere('type', 'order_update')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json([
-            'status' => 'success',
-            'notifications' => $notifications
-        ], 200);
-    }
 }

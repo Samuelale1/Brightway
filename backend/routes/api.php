@@ -9,7 +9,6 @@ use App\Http\Controllers\DeliveryPersonController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -17,7 +16,8 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // ------------- PUBLIC ROUTES ------------------
 Route::get('/products', [ProductController::class, 'index']);
-Route::get('/orders/{id}', [OrderController::class, 'show']);
+ // Publicly create show route just in case
+
 
 // Paystack Webhook (must be public, no auth)
 Route::post('/payments/webhook', [PaymentController::class, 'webhook']);
@@ -50,6 +50,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/orders/{id}/assign-delivery', [OrderController::class, 'assignDelivery']);
     Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus']);
     Route::put('/orders/{id}/confirm-payment', [OrderController::class, 'confirmPayment']);
+    Route::get('/orders/{id}', [OrderController::class, 'show']);
 
     // DELIVERY
     Route::get('/delivery-persons', [DeliveryPersonController::class, 'index']);   
@@ -61,14 +62,6 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/verify', [PaymentController::class, 'verify']);
     });
 
-    // NOTIFICATIONS
-    Route::prefix('notifications')->group(function () {
-        Route::get('/', [NotificationController::class, 'index']);
-        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
-        Route::put('/{id}/read', [NotificationController::class, 'markAsRead']);
-        Route::put('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
-    });
-
     // REPORTS
     Route::prefix('reports')->group(function () {
         Route::get('/overview', [ReportsController::class, 'overview']);
@@ -76,6 +69,11 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/daily-revenue', [ReportsController::class, 'dailyRevenue']);
         Route::get('/staff-performance', [ReportsController::class, 'staffPerformance']);
     });
+
+    // PRODUCTS
+    Route::post('/products', [ProductController::class, 'store']);
+    Route::post('/products/{id}', [ProductController::class, 'update']); // Fix for 405 on multipart/form-data update
+    Route::delete('/products/{id}', [ProductController::class, 'destroy']);
 });
 
 

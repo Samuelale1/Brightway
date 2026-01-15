@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from "react";
+import ModalWrapper from "./ModalWrapper";
 
 const ProductsSection = () => {
-  const [editModal, setEditModal] = useState(false);
-const [deleteModal, setDeleteModal] = useState(false);
-const [selectedProduct, setSelectedProduct] = useState(null);
   const [products, setProducts] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [editModal, setEditModal] = useState(false);
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const user = JSON.parse(localStorage.getItem("user"));
+
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
     price: "",
     quantity: "",
     image: null,
+    category: "",
+    availability: "available",
   });
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const user = JSON.parse(localStorage.getItem("user"));
 
   // ✅ Fetch products
   useEffect(() => {
@@ -38,7 +43,7 @@ const [selectedProduct, setSelectedProduct] = useState(null);
     }
   };
 
-  // ✅ Handle input change
+  // ✅ Handle input changes
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (files) {
@@ -48,343 +53,356 @@ const [selectedProduct, setSelectedProduct] = useState(null);
     }
   };
 
-  // ✅ Handle submit (with image upload)
+  // ✅ Add Product
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setMessage("");
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
 
-  try {
-    // Build FormData
-    const form = new FormData();
-    form.append("name", newProduct.name);
-    form.append("description", newProduct.description);
-    form.append("price", newProduct.price);
-    form.append("quantity", newProduct.quantity);
-    form.append("added_by", user.id); // IMPORTANT: send user id, not name
-    console.log([...form.entries()]);
-
-    if (newProduct.image) form.append("image", newProduct.image);
-
-    // don't set Content-Type header — browser will do it for FormData
-    const token = localStorage.getItem("token");
-    const res = await fetch("http://127.0.0.1:8000/api/products", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Accept": "application/json"
-      },
-      body: form,
-    });
-
-    // read response as text first (so we never crash parsing HTML)
-    const text = await res.text();
-    let data = null;
     try {
-      data = text ? JSON.parse(text) : null;
-    } catch (err) {
-      // response is not JSON (likely HTML error page)
-      console.error("Server responded with non-JSON:", text);
-    }
+      const form = new FormData();
+      form.append("name", newProduct.name);
+      form.append("description", newProduct.description);
+      form.append("price", newProduct.price);
+      form.append("quantity", newProduct.quantity);
+      if(newProduct.category) form.append("category", newProduct.category);
+      if(newProduct.availability) form.append("availability", newProduct.availability);
+      form.append("added_by", user?.id);
+      if (newProduct.image) form.append("image", newProduct.image);
 
-    if (!res.ok) {
-      // If controller returned JSON with message array -> join it
-      if (data && data.message) {
-        const msg = Array.isArray(data.message)
-          ? data.message.join(" ")
-          : (typeof data.message === "string" ? data.message : JSON.stringify(data.message));
-        setMessage(msg);
-      } else {
-        // fallback: show raw text or generic message
-        setMessage(text || `Server error: ${res.status}`);
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://127.0.0.1:8000/api/products", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json"
+        },
+        body: form,
+      });
+
+      const text = await res.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        console.error("Non-JSON response:", text);
       }
-      return;
-    }
 
-    // OK (2xx)
-    if (data && data.product) {
-      setMessage("✅ Product added successfully!");
-      setShowModal(false);
-      setNewProduct({ name: "", description: "", price: "", quantity: "", image: null });
-      fetchProducts();
-    } else {
-      setMessage("Product added but server returned unexpected response.");
-      fetchProducts();
+      if (res.ok) {
+        setMessage("✅ Product added successfully!");
+        setShowModal(false);
+        setNewProduct({
+          name: "",
+          description: "",
+          price: "",
+          quantity: "",
+          image: null,
+          category: "",
+          availability: "available",
+        });
+        fetchProducts();
+      } else {
+        setMessage(data?.message || text || "Server error");
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      setMessage("⚠️ Network error");
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Network/JS error:", err);
-    setMessage("Network error, check console for details.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
+  // ✅ Edit Product
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const form = new FormData();
+      form.append("name", selectedProduct.name);
+      form.append("description", selectedProduct.description);
+      form.append("price", selectedProduct.price);
+      form.append("quantity", selectedProduct.quantity);
+      if(selectedProduct.category) form.append("category", selectedProduct.category);
+      if(selectedProduct.availability) form.append("availability", selectedProduct.availability);
+      if (selectedProduct.image instanceof File)
+        form.append("image", selectedProduct.image);
+      
+      // Removed _method PUT to force a true POST request matching the backend route
+      // form.append("_method", "PUT");
+
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `http://127.0.0.1:8000/api/products/${selectedProduct.id}`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json"
+          },
+          body: form,
+        }
+      );
+
+      const text = await res.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        console.error("Non-JSON response:", text);
+      }
+
+      if (res.ok) {
+        setMessage("✅ Product updated!");
+        setEditModal(false);
+        fetchProducts();
+      } else {
+        setMessage(data?.message || text || "Error updating product");
+      }
+    } catch (err) {
+      console.error("Error updating:", err);
+      setMessage("⚠️ Network error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Delete Product
+  const handleDelete = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `http://127.0.0.1:8000/api/products/${selectedProduct.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json"
+          }
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setMessage("🗑️ Product deleted");
+        setDeleteModal(false);
+        fetchProducts();
+      } else {
+        setMessage(data.message || "Error deleting");
+      }
+    } catch (err) {
+      console.error("Error deleting:", err);
+    }
+  };
+
+  // ✅ Filter items based on search
+  const [searchTerm, setSearchTerm] = useState("");
+  const filteredProducts = products.filter(p => 
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      p.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="relative">
-      {/* ✅ Header + Add Button */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Products</h2>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-        >
-          + Add Product
-        </button>
+    <div className="relative animate-fade-in-up">
+      {/* ✅ Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <div>
+           <h2 className="text-2xl font-semibold text-gray-700">Manage Products</h2>
+           <p className="text-sm text-gray-500">Add, edit, or remove products from your store.</p>
+        </div>
+
+        <div className="flex gap-4 w-full sm:w-auto">
+             <input 
+                type="text" 
+                placeholder="🔍 Search products..." 
+                className="border border-gray-200 p-2 rounded-lg w-full sm:w-64 focus:ring-2 focus:ring-blue-500 outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+             />
+            <button
+            onClick={() => setShowModal(true)}
+            className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition shadow-lg shrink-0"
+            >
+            + Add Product
+            </button>
+        </div>
       </div>
 
       {/* ✅ Product Table */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        {products.length > 0 ? (
-          <table className="w-full  text-sm text-left rtl:text-right text-black dark:text-gray-400 rounded-lg overflow-hidden ">
-            <thead className="text-xs text-black uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-              <tr className="bg-blue-100 text-left rounded-lg">
-                <th className=" px-6 py-3 text-black">S/N</th>
-                <th className=" px-6 py-3 text-black">Image</th>
-                <th className=" px-6 py-3 text-black">Name</th>
-                <th className="  px-6 py-3 text-black">Price</th>
-                <th className=" px-6 py-3 text-black">Quantity</th>
-                <th className="  px-6 py-3 text-black">Actions</th>
+      <div className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+        {filteredProducts.length > 0 ? (
+          <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b-2 border-gray-100 text-gray-500 text-xs uppercase tracking-wider">
+                <th className="p-4 font-semibold">S/N</th>
+                <th className="p-4 font-semibold">Image</th>
+                <th className="p-4 font-semibold">Name</th>
+                <th className="p-4 font-semibold">Category</th>
+                <th className="p-4 font-semibold">Price</th>
+                <th className="p-4 font-semibold">Status</th>
+                <th className="p-4 font-semibold">Quantity</th>
+                <th className="p-4 font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-300">
-              {products.map((p,index) => (
-                <tr key={p.id} className="border-b hover:bg-gray-50">
-                  <td className="p-3">{index + 1 }</td>
-                  <td className="p-3">{p.image ? (<img src={`http://127.0.0.1:8000/storage/${p.image}`} alt={p.name} className="w-12 h-12 object-cover rounded" />) : "No Image"}</td>
-                  <td className="p-3">{p.name}</td>
-                  <td className="p-3">{p.price}</td>
-                  <td className="p-3">{p.quantity}</td>
-                  <td className="p-3 flex gap-2">
+            <tbody className="divide-y divide-gray-50 text-slate-600 text-sm">
+              {filteredProducts.map((p, index) => (
+                <tr key={p.id} className="hover:bg-amber-50/50 transition duration-200">
+                  <td className="p-4 font-medium text-slate-400">{index + 1}</td>
+                  <td className="p-4">
+                    {p.image ? (
+                      <img
+                        src={`http://127.0.0.1:8000/storage/${p.image}`}
+                        alt={p.name}
+                        className="w-12 h-12 object-cover rounded-lg shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-xs text-gray-400">No Img</div>
+                    )}
+                  </td>
+                  <td className="p-4 font-bold text-slate-800">{p.name}</td>
+                  <td className="p-4">
+                      <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium border border-gray-200">
+                          {p.category || 'General'}
+                      </span>
+                  </td>
+                  <td className="p-4 font-bold text-amber-600">₦{p.price}</td>
+                  <td className="p-4">
+                      {p.availability === 'unavailable' ? (
+                          <span className="text-red-500 font-bold text-xs bg-red-50 px-2 py-1 rounded-full">Unavailable</span>
+                      ) : p.availability === 'wait_time' ? (
+                          <span className="text-orange-500 font-bold text-xs bg-orange-50 px-2 py-1 rounded-full">Wait Time</span>
+                      ) : (
+                          <span className="text-emerald-500 font-bold text-xs bg-emerald-50 px-2 py-1 rounded-full">Available</span>
+                      )}
+                  </td>
+                  <td className="p-4">{p.quantity}</td>
+                  <td className="p-4 flex gap-2">
                     <button
-                      onClick={() => { setSelectedProduct(p); setEditModal(true); }}
-                      className="text-blue-600 hover:text-blue-800"
+                      onClick={() => {
+                        setSelectedProduct(p);
+                        setEditModal(true);
+                      }}
+                      className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition"
+                      title="Edit"
                     >
-                      ✏️ Edit
+                      ✏️
                     </button>
                     <button
-                      onClick={() => { setSelectedProduct(p); setDeleteModal(true); }}
-                      className="text-red-600 hover:text-red-800"
+                      onClick={() => {
+                        setSelectedProduct(p);
+                        setDeleteModal(true);
+                      }}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-full transition"
+                      title="Delete"
                     >
-                      🗑️ Delete
+                      🗑️
                     </button>
                   </td>
                 </tr>
-              ))} 
+              ))}
             </tbody>
           </table>
+          </div>
         ) : (
-          <p className="text-center py-4">No products found.</p>
+          <div className="text-center py-12">
+              <div className="text-6xl mb-4">🍽️</div>
+              <p className="text-gray-500">No products found. Start by adding one!</p>
+          </div>
         )}
       </div>
 
-      {/* ✅ Add Product Modal Form */}
-      {showModal && (
-        <div className="fixed inset-0 bg-blue-500/20 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-1/3 relative">
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-            >
-              ✖
-            </button>
-            <h3 className="text-xl font-semibold mb-4">Add Product</h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                type="text"
-                name="name"
-                value={newProduct.name}
-                onChange={handleChange}
-                placeholder="Product Name"
-                required
-                className="w-full p-2 border rounded"
-              />
-              <input
-                type="number"
-                name="price"
-                value={newProduct.price}
-                onChange={handleChange}
-                placeholder="Price (₦)"
-                required
-                className="w-full p-2 border rounded"
-              />
-              <input
-                type="number"
-                name="quantity"
-                value={newProduct.quantity}
-                onChange={handleChange}
-                placeholder="Quantity"
-                required
-                className="w-full p-2 border rounded"
-              />
-              <textarea
-                name="description"
-                value={newProduct.description}
-                onChange={handleChange}
-                placeholder="Description"
-                className="w-full p-2 border rounded"
-              ></textarea>
-              <input
-                type="file"
-                name="image"
-                accept="image/*"
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition w-full"
-              >
-                {loading ? "Uploading..." : "Add Product"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-{/* Edit Product Modal Form */}
-      {editModal && selectedProduct && (
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-    <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-      <h3 className="text-xl font-semibold mb-4 text-center">Edit Product</h3>
-
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          const form = new FormData();
-            form.append("name", selectedProduct.name);
-            form.append("description", selectedProduct.description);
-            form.append("price", selectedProduct.price);
-            form.append("quantity", selectedProduct.quantity);
-            if (selectedProduct.image instanceof File)
-              form.append("image", selectedProduct.image);
-
-            // Spoof PUT for Laravel
-            form.append("_method", "PUT");
-
-            const token = localStorage.getItem("token");
-            const res = await fetch(`http://127.0.0.1:8000/api/products/${selectedProduct.id}`, {
-              method: "POST", // ✅ not PUT
-              headers: {
-                "Authorization": `Bearer ${token}`,
-                "Accept": "application/json"
-              },
-              body: form,
-            });
-
-          const data = await res.json();
-          if (res.ok) {
-            setMessage("✅ Product updated!");
-            setEditModal(false);
-            fetchProducts();
-          } else {
-            setMessage(data.message || "Error updating");
-          }
-        }}
-        className="space-y-3"
+      {/* ✅ Add Modal */}
+      <ModalWrapper
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Add Product"
       >
-        <input
-          type="text"
-          value={selectedProduct.name}
-          onChange={(e) =>
-            setSelectedProduct({ ...selectedProduct, name: e.target.value })
-          }
-          className="w-full border p-2 rounded"
-        />
-        <input
-          type="text"
-          value={selectedProduct.description || ""}
-          onChange={(e) =>
-            setSelectedProduct({ ...selectedProduct, description: e.target.value })
-          }
-          className="w-full border p-2 rounded"
-        />
-        <input
-          type="number"
-          value={selectedProduct.price}
-          onChange={(e) =>
-            setSelectedProduct({ ...selectedProduct, price: e.target.value })
-          }
-          className="w-full border p-2 rounded"
-        />
-        <input
-          type="number"
-          value={selectedProduct.quantity}
-          onChange={(e) =>
-            setSelectedProduct({ ...selectedProduct, quantity: e.target.value })
-          }
-          className="w-full border p-2 rounded"
-        />
-        <input
-          type="file"
-          onChange={(e) =>
-            setSelectedProduct({ ...selectedProduct, image: e.target.files[0] })
-          }
-          className="w-full border-amber-100"
-        />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="text" name="name" value={newProduct.name} onChange={handleChange} placeholder="Product Name" required className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition" />
+          <div className="grid grid-cols-2 gap-4">
+             <input type="number" name="price" value={newProduct.price} onChange={handleChange} placeholder="Price (₦)" required className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition" />
+             <input type="number" name="quantity" value={newProduct.quantity} onChange={handleChange} placeholder="Quantity" required className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition" />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+             <select name="category" value={newProduct.category || ""} onChange={handleChange} className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition bg-white">
+                 <option value="">Select Category</option>
+                 {["Breakfast", "Lunch", "Dinner", "Swallow", "Drinks", "Rice", "Beverages", "Snacks", "Proteins", "Others"].map(c => <option key={c} value={c}>{c}</option>)}
+             </select>
+             <select name="availability" value={newProduct.availability || "available"} onChange={handleChange} className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition bg-white">
+                 <option value="available">✅ Available</option>
+                 <option value="wait_time">⏳ Wait Time</option>
+                 <option value="unavailable">❌ Unavailable</option>
+             </select>
+          </div>
 
-        <div className="flex justify-end gap-2 mt-4">
-          <button
-            type="button"
-            onClick={() => setEditModal(false)}
-            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-          >
-            Cancel
+          <textarea name="description" value={newProduct.description} onChange={handleChange} placeholder="Description" className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition" rows="3"></textarea>
+          <input type="file" name="image" accept="image/*" onChange={handleChange} className="w-full border border-gray-200 p-3 rounded-xl file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
+          
+          <button type="submit" disabled={loading} className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold rounded-xl shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all active:scale-95">
+            {loading ? "Uploading..." : "Add Product"}
           </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Save
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-)}
+        </form>
+      </ModalWrapper>
 
-{/* Delete Product Modal Form */}
-{deleteModal && selectedProduct && (
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-    <div className="bg-white p-6 rounded-lg shadow-lg w-80 text-center">
-      <h3 className="text-lg mb-4">Delete "{selectedProduct.name}"?</h3>
-      <p className="text-gray-600 mb-6">
-        This action cannot be undone.
-      </p>
-      <div className="flex justify-center gap-3">
-        <button
-          onClick={() => setDeleteModal(false)}
-          className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={async () => {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`http://127.0.0.1:8000/api/products/${selectedProduct.id}`, {
-              method: "DELETE",
-              headers: {
-                "Authorization": `Bearer ${token}`,
-                "Accept": "application/json"
-              }
-            });
-            const data = await res.json();
-            if (res.ok) {
-              setMessage("🗑️ Product deleted");
-              setDeleteModal(false);
-              fetchProducts();
-            } else {
-              setMessage(data.message || "Error deleting");
-            }
-          }}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-        >
-          Delete
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      {/* ✅ Edit Modal */}
+      <ModalWrapper
+        isOpen={editModal}
+        onClose={() => setEditModal(false)}
+        title="Edit Product"
+      >
+        {selectedProduct && (
+          <form onSubmit={handleEdit} className="space-y-4">
+            <input type="text" value={selectedProduct.name} onChange={(e) => setSelectedProduct({ ...selectedProduct, name: e.target.value })} className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition" />
+            
+             <div className="grid grid-cols-2 gap-4">
+                <input type="number" value={selectedProduct.price} onChange={(e) => setSelectedProduct({ ...selectedProduct, price: e.target.value })} className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition" />
+                <input type="number" value={selectedProduct.quantity} onChange={(e) => setSelectedProduct({ ...selectedProduct, quantity: e.target.value })} className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition" />
+             </div>
+
+             <div className="grid grid-cols-2 gap-4">
+                <select value={selectedProduct.category || ""} onChange={(e) => setSelectedProduct({ ...selectedProduct, category: e.target.value })} className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition bg-white">
+                    <option value="">Select Category</option>
+                    {["Breakfast", "Lunch", "Dinner", "Swallow", "Drinks", "Rice", "Beverages", "Snacks", "Proteins", "Others"].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <select value={selectedProduct.availability || "available"} onChange={(e) => setSelectedProduct({ ...selectedProduct, availability: e.target.value })} className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition bg-white">
+                    <option value="available">✅ Available</option>
+                    <option value="wait_time">⏳ Wait Time</option>
+                    <option value="unavailable">❌ Unavailable</option>
+                </select>
+             </div>
+
+            <textarea value={selectedProduct.description || ""} onChange={(e) => setSelectedProduct({ ...selectedProduct, description: e.target.value })} className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition" rows="3" />
+            <input type="file" onChange={(e) => setSelectedProduct({ ...selectedProduct, image: e.target.files[0] })} className="w-full border border-gray-200 p-3 rounded-xl file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
+            
+            <button type="submit" className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all active:scale-95">Save Changes</button>
+          </form>
+        )}
+      </ModalWrapper>
+
+      {/* ✅ Delete Modal */}
+      <ModalWrapper
+        isOpen={deleteModal}
+        onClose={() => setDeleteModal(false)}
+        title="Delete Product"
+      >
+        {selectedProduct && (
+          <>
+            <p className="text-gray-600 text-center mb-6">
+              Are you sure you want to delete <strong>{selectedProduct.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex justify-center gap-4">
+              <button onClick={() => setDeleteModal(false)} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+                Cancel
+              </button>
+              <button onClick={handleDelete} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                Delete
+              </button>
+            </div>
+          </>
+        )}
+      </ModalWrapper>
 
       {message && <p className="text-center text-sm mt-4">{message}</p>}
     </div>

@@ -9,7 +9,7 @@ use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 
-class OrderPlaced extends Notification implements ShouldBroadcast
+class OrderPlaced extends Notification
 {
     use Queueable;
 
@@ -30,7 +30,7 @@ class OrderPlaced extends Notification implements ShouldBroadcast
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast'];
+        return ['database'];
     }
 
     /**

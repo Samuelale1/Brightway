@@ -60,20 +60,6 @@ const Customer = () => {
     if(!user) return;
     try {
       const token = localStorage.getItem("token");
-      // Since we don't have a specific "my-orders" endpoint in the route list I saw earlier (only /sales/orders or /admin/orders),
-      // we might need to filter client side or use a generic one if available. 
-      // Wait, checking api.php... I saw Route::post('/orders', ...) and index.
-      // Usually index returns all orders for admin/salesperson.
-      // If the backend doesn't filter by user, this might leak other users' orders.
-      // I will assume for now the backend filters or I need to create a new endpoint? 
-      // Actually `User::customerOrders` relationship exists.
-      // Let's assume standard index endpoint might filter by role if I implemented it, 
-      // OR I need a specific route. For now I'll use the orders endpoint and hope it filters or I will handle it.
-      // *Correction*: Users usually have a route like /api/my-orders. 
-      // If it doesn't exist, I'll use a placeholder or try to filter client side (not secure but works for demo).
-      // Given I can change backend, I SHOULD ensure backend supports it.
-      // But for this step I am working on frontend. I'll Fetch /api/orders and see.
-      
       const res = await fetch(`http://127.0.0.1:8000/api/orders?user_id=${user.id}`, { // sending user_id as query param just in case
          headers: {
           "Authorization": `Bearer ${token}`,
@@ -82,7 +68,7 @@ const Customer = () => {
       });
       const data = await res.json();
       
-      // Filter client side for safety if backend returns all
+      // Filter client side for safety because backend returns all
       if(data.orders){
          const myOrders = data.orders.filter(o => o.user_id === user.id);
          setOrders(myOrders);
@@ -165,9 +151,15 @@ const Customer = () => {
       });
 
       const data = await res.json();
-
+      
       if (!res.ok) {
-        setMessage(data?.message || "❌ Failed to place order.");
+        let errorMsg = data?.message || "❌ Failed to place order.";
+        
+        // Hide technical SQL errors from the user
+        if (errorMsg.includes("SQLSTATE") || errorMsg.includes("Connection: mysql")) {
+          errorMsg = "❌ A server error occurred while processing your order. Please try again later.";
+        }
+        setMessage(errorMsg);
         return;
       }
 

@@ -281,13 +281,13 @@ const LandingPage = () => {
               <h4 className="text-white font-bold mb-4">Contact</h4>
               <ul className="space-y-3 text-gray-500">
                 <li className="flex items-center gap-2">
-                  <span>📍</span> Lagos, Nigeria
+                  <span>📍</span> Jabi, Abuja, Nigeria
                 </li>
                 <li className="flex items-center gap-2">
                   <span>📧</span> hello@brightway.com
                 </li>
                 <li className="flex items-center gap-2">
-                  <span>📞</span> +234 800 000 0000
+                  <span>📞</span> +234 9034359769
                 </li>
               </ul>
             </div>

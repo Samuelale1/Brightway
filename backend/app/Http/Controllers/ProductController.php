@@ -32,7 +32,7 @@ class ProductController extends Controller
             'added_by' => 'required|numeric',           // expects user id
             'image'       => 'nullable|image|mimes:jpg,jpeg,png,gif|max:4096',
             'category'    => 'nullable|string',
-            'availability' => 'nullable|in:available,wait_time',
+            'availability' => 'nullable|in:available,wait_time,unavailable',
         ]);
 
         $imagePath = null;
@@ -76,7 +76,7 @@ public function update(Request $request, $id)
             'quantity'    => 'required|numeric|min:0',
             'image'       => 'nullable|image|mimes:jpg,jpeg,png,gif|max:4096',
             'category'    => 'nullable|string',
-            'availability' => 'nullable|in:available,wait_time',
+            'availability' => 'nullable|in:available,wait_time,unavailable',
         ]);
 
         if ($request->hasFile('image')) {

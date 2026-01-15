@@ -100,8 +100,7 @@ const AdminDashboard = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            {/* Notification Bell */}
-            <NotificationCenter />
+            {/* Notification Bell Removed */}
             
             <div className="text-right hidden md:block">
                 <span className="block text-sm font-bold text-slate-700">{user?.name || "Admin"}</span>

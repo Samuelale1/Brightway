@@ -108,7 +108,7 @@ const Products = () => {
       form.append("quantity", selectedProduct.quantity);
       if (selectedProduct.image instanceof File)
         form.append("image", selectedProduct.image);
-      form.append("_method", "PUT");
+      // form.append("_method", "PUT"); // Removed to match backend POST route
 
       const res = await fetch(
         `http://127.0.0.1:8000/api/products/${selectedProduct.id}`,
