@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Spinner from "../../components/Spinner";
 import ModalWrapper from "../../components/ModalWrapper";
 import { Search, Plus, Trash2, Key, ToggleLeft, ToggleRight, User } from "lucide-react";
+import { API_BASE_URL } from "../../api"; // ✅ Import API config
 
 const UsersList = ({ role, onBack, refreshCounts }) => {
   const [users, setUsers] = useState([]);
@@ -30,7 +31,7 @@ const UsersList = ({ role, onBack, refreshCounts }) => {
     setLoading(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/admin/users", {
+      const res = await fetch(`${API_BASE_URL}/admin/users`, { // ✅ Use variable
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -55,7 +56,7 @@ const UsersList = ({ role, onBack, refreshCounts }) => {
   };
 
   const changeRole = async (id, newRole) => {
-    await fetch(`http://127.0.0.1:8000/api/admin/users/${id}/role`, {
+    await fetch(`${API_BASE_URL}/admin/users/${id}/role`, { // ✅ Use variable
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -69,7 +70,7 @@ const UsersList = ({ role, onBack, refreshCounts }) => {
   };
 
   const toggleStatus = async (id) => {
-    await fetch(`http://127.0.0.1:8000/api/admin/users/${id}/toggle`, {
+    await fetch(`${API_BASE_URL}/admin/users/${id}/toggle`, { // ✅ Use variable
       method: "PUT",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -82,7 +83,7 @@ const UsersList = ({ role, onBack, refreshCounts }) => {
     if (!confirm("Are you sure you want to reset the password?")) return;
     
     const res = await fetch(
-      `http://127.0.0.1:8000/api/admin/users/${id}/reset-password`,
+      `${API_BASE_URL}/admin/users/${id}/reset-password`, // ✅ Use variable
       {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
@@ -99,7 +100,7 @@ const UsersList = ({ role, onBack, refreshCounts }) => {
 
     const form = new FormData(e.target);
 
-    await fetch("http://127.0.0.1:8000/api/register", {
+    await fetch(`${API_BASE_URL}/register`, { // ✅ Use variable
       method: "POST",
       body: JSON.stringify({
         name: form.get("name"),

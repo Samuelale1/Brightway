@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import ModalWrapper from "./ModalWrapper";
+import { API_BASE_URL, BASE_URL } from "../api"; 
 
 const ProductsSection = () => {
   const [products, setProducts] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [editModal, setEditModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -22,24 +24,20 @@ const ProductsSection = () => {
     availability: "available",
   });
 
-  // ✅ Fetch products
   useEffect(() => {
     fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("http://127.0.0.1:8000/api/products", {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/json"
-        }
-      });
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}/products`); 
       const data = await res.json();
       setProducts(data);
     } catch (err) {
       console.error("Error fetching products:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,7 +69,7 @@ const ProductsSection = () => {
       if (newProduct.image) form.append("image", newProduct.image);
 
       const token = localStorage.getItem("token");
-      const res = await fetch("http://127.0.0.1:8000/api/products", {
+      const res = await fetch(`${API_BASE_URL}/products`, {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${token}`,
@@ -90,7 +88,7 @@ const ProductsSection = () => {
 
       if (res.ok) {
         setMessage("✅ Product added successfully!");
-        setShowModal(false);
+        setShowAddModal(false);
         setNewProduct({
           name: "",
           description: "",
@@ -128,13 +126,10 @@ const ProductsSection = () => {
       if(selectedProduct.availability) form.append("availability", selectedProduct.availability);
       if (selectedProduct.image instanceof File)
         form.append("image", selectedProduct.image);
-      
-      // Removed _method PUT to force a true POST request matching the backend route
-      // form.append("_method", "PUT");
 
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://127.0.0.1:8000/api/products/${selectedProduct.id}`,
+        `${API_BASE_URL}/products/${selectedProduct.id}`,
         {
           method: "POST",
           headers: {
@@ -155,7 +150,7 @@ const ProductsSection = () => {
 
       if (res.ok) {
         setMessage("✅ Product updated!");
-        setEditModal(false);
+        setShowEditModal(false);
         fetchProducts();
       } else {
         setMessage(data?.message || text || "Error updating product");
@@ -173,7 +168,7 @@ const ProductsSection = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://127.0.0.1:8000/api/products/${selectedProduct.id}`,
+        `${API_BASE_URL}/products/${selectedProduct.id}`,
         {
           method: "DELETE",
           headers: {
@@ -195,7 +190,6 @@ const ProductsSection = () => {
     }
   };
 
-  // ✅ Filter items based on search
   const [searchTerm, setSearchTerm] = useState("");
   const filteredProducts = products.filter(p => 
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -204,7 +198,6 @@ const ProductsSection = () => {
 
   return (
     <div className="relative animate-fade-in-up">
-      {/* ✅ Header */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <div>
            <h2 className="text-2xl font-semibold text-gray-700">Manage Products</h2>
@@ -220,7 +213,7 @@ const ProductsSection = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
              />
             <button
-            onClick={() => setShowModal(true)}
+            onClick={() => setShowAddModal(true)}
             className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition shadow-lg shrink-0"
             >
             + Add Product
@@ -228,7 +221,6 @@ const ProductsSection = () => {
         </div>
       </div>
 
-      {/* ✅ Product Table */}
       <div className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
         {filteredProducts.length > 0 ? (
           <div className="overflow-x-auto">
@@ -252,7 +244,7 @@ const ProductsSection = () => {
                   <td className="p-4">
                     {p.image ? (
                       <img
-                        src={`http://127.0.0.1:8000/storage/${p.image}`}
+                        src={`${BASE_URL}/storage/${p.image}`} // ✅ Use variable
                         alt={p.name}
                         className="w-12 h-12 object-cover rounded-lg shadow-sm"
                       />
@@ -281,7 +273,7 @@ const ProductsSection = () => {
                     <button
                       onClick={() => {
                         setSelectedProduct(p);
-                        setEditModal(true);
+                        setShowEditModal(true);
                       }}
                       className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition"
                       title="Edit"
@@ -314,8 +306,8 @@ const ProductsSection = () => {
 
       {/* ✅ Add Modal */}
       <ModalWrapper
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
         title="Add Product"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -348,8 +340,8 @@ const ProductsSection = () => {
 
       {/* ✅ Edit Modal */}
       <ModalWrapper
-        isOpen={editModal}
-        onClose={() => setEditModal(false)}
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
         title="Edit Product"
       >
         {selectedProduct && (
@@ -393,19 +385,20 @@ const ProductsSection = () => {
               Are you sure you want to delete <strong>{selectedProduct.name}</strong>? This action cannot be undone.
             </p>
             <div className="flex justify-center gap-4">
-              <button onClick={() => setDeleteModal(false)} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+              <button onClick={() => setDeleteModal(false)} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 font-medium">
                 Cancel
               </button>
-              <button onClick={handleDelete} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                Delete
+              <button onClick={handleDelete} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-medium shadow-lg shadow-red-500/20">
+                Delete Product
               </button>
             </div>
           </>
         )}
       </ModalWrapper>
 
-      {message && <p className="text-center text-sm mt-4">{message}</p>}
+      {message && <p className="text-center text-sm mt-4 font-medium text-amber-600">{message}</p>}
     </div>
   );
 };
+
 export default ProductsSection;

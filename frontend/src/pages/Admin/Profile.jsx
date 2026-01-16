@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { API_BASE_URL } from "../../api"; // ✅ Import API config
 
 const Profile = () => {
   const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
@@ -11,7 +12,7 @@ const Profile = () => {
     e.preventDefault();
 
     const token = localStorage.getItem("token");
-    const res = await fetch("http://127.0.0.1:8000/api/profile/update", {
+    const res = await fetch(`${API_BASE_URL}/profile/update`, {
       method: "PUT",
       headers: { 
           "Content-Type": "application/json",
@@ -36,7 +37,7 @@ const Profile = () => {
     const token = localStorage.getItem("token");
     const form = new FormData(e.target);
 
-    const res = await fetch("http://127.0.0.1:8000/api/profile/password", {
+    const res = await fetch(`${API_BASE_URL}/profile/password`, {
       method: "PUT",
       headers: { 
           "Content-Type": "application/json",

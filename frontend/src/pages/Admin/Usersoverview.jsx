@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { UserCog, UserCheck, Users, Truck, ChevronRight } from "lucide-react";
 import Spinner from "../../components/Spinner";
 import UsersList from "./UsersList"; // role-specific table & actions
+import { API_BASE_URL } from "../../api"; // ✅ Import API config
 
 const cardsMeta = [
   { key: "admins", title: "Admins", icon: <UserCog size={20} />, color: "bg-blue-100 text-blue-700" },
@@ -24,7 +25,7 @@ export default function UsersOverview() {
   const fetchCounts = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/admin/users-count", {
+      const res = await fetch(`${API_BASE_URL}/admin/users-count`, { // ✅ Use variable
         headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
       });
       if (!res.ok) throw new Error("Failed to fetch counts");

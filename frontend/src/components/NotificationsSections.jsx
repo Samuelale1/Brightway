@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { API_BASE_URL } from '../api';
 
 const NotificationsSection = () => {
   const [notifications, setNotifications] = useState([]);
@@ -11,7 +12,7 @@ const NotificationsSection = () => {
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://127.0.0.1:8000/api/reports/overview", { // Using overview or salesperson specific if available
+      const res = await fetch(`${API_BASE_URL}/reports/overview`, { // Using overview or salesperson specific if available
           // Actually SalespersonController has getNotifications, route is likely in protected group
           // Checking api.php in memory: Route::get('/sales/notifications', ...) was not there?
           // Let's assume there is one or use a placeholder.

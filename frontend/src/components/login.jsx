@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Spinner from "../components/Spinner"; // <-- ADD THIS
+import Spinner from "../components/Spinner"; 
+import { API_BASE_URL } from "../api"; 
 
 const Login = () => {
   const navigate = useNavigate();
@@ -28,8 +29,8 @@ const Login = () => {
 
     try {
       const url = isLoginMode
-        ? "http://127.0.0.1:8000/api/login"
-        : "http://127.0.0.1:8000/api/register";
+        ? `${API_BASE_URL}/login`
+        : `${API_BASE_URL}/register`;
 
       const res = await fetch(url, {
         method: "POST",

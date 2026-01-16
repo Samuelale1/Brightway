@@ -1,24 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../api"; 
 
-const OrderDetails = () => {
-  const { id } = useParams();
+const OrderDetails = ({ orderId, onBack }) => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [deliveryData, setDeliveryData] = useState({
-    delivery_person: "",
-    delivery_phone: "",
-  });
-  const navigate = useNavigate();
+  const [deliveryPersons, setDeliveryPersons] = useState([]);
+  const [selectedDeliveryPerson, setSelectedDeliveryPerson] = useState("");
+  
 
   useEffect(() => {
-    fetchOrder();
-  }, [id]);
+    fetchOrderDetails();
+    fetchDeliveryPersons();
+  }, [orderId]);
 
-  const fetchOrder = async () => {
+  const fetchOrderDetails = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/orders/${id}`);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const data = await res.json();
       if (data.status === "success") setOrder(data.order);
     } catch (err) {
@@ -28,30 +31,75 @@ const OrderDetails = () => {
     }
   };
 
-  const handleChange = (e) => {
-    setDeliveryData({ ...deliveryData, [e.target.name]: e.target.value });
+  const fetchDeliveryPersons = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/delivery-persons`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setDeliveryPersons(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching delivery persons:", error);
+    }
   };
 
-  const handleAssignDelivery = async (e) => {
-    e.preventDefault();
+  const handleAssignDelivery = async () => {
+    if (!selectedDeliveryPerson) return alert("Please select a delivery person first.");
     try {
+      const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://127.0.0.1:8000/api/orders/${id}/assign-delivery`,
+        `${API_BASE_URL}/orders/${orderId}/assign-delivery`,
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(deliveryData),
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ delivery_person_id: selectedDeliveryPerson }),
         }
       );
-      const data = await res.json();
-      if (data.status === "success") {
-        alert("✅ Delivery assigned successfully!");
-        fetchOrder();
+      if (res.ok) {
+        alert("Delivery person assigned!");
+        fetchOrderDetails();
       } else {
-        alert("❌ Failed: " + data.message);
+        alert("Failed to assign delivery person.");
       }
     } catch (error) {
-      console.error("Error assigning delivery:", error);
+      console.error("Error assigning delivery person:", error);
+    }
+  };
+
+  const updateStatus = async (status) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) fetchOrderDetails();
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
+  };
+
+  const confirmPayment = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${API_BASE_URL}/orders/${orderId}/confirm-payment`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (res.ok) fetchOrderDetails();
+    } catch (error) {
+      console.error("Error confirming payment:", error);
     }
   };
 

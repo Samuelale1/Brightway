@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { API_BASE_URL } from "../../api"; // ✅ Import API config
 import {
   LineChart,
   Line,
@@ -19,8 +20,6 @@ const Reports = () => {
   const [topProducts, setTopProducts] = useState([]);
   const [staffPerformance, setStaffPerformance] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const API_BASE = "http://127.0.0.1:8000/api/reports";
 
   const fetchAllReports = async () => {
     try {

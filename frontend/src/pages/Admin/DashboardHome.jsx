@@ -4,43 +4,45 @@ import {
   ShoppingCart,
   Users,
   CheckCircle,
-  Clock,
+  BarChart3,
   TrendingUp,
+  Clock, // Added back missing import
 } from "lucide-react";
+import { API_BASE_URL } from "../../api"; // ✅ Import API config
 
 const DashboardHome = () => {
   const [stats, setStats] = useState({
+    totalSales: 0,
     totalOrders: 0,
     pendingOrders: 0,
     completedOrders: 0,
     totalProducts: 0,
     totalUsers: 0,
     topProducts: [],
+    revenueChange: "+0%",
   });
 
-  // ✅ Simulate API Fetch
-  // ✅ Fetch Dashboard Data
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch("http://127.0.0.1:8000/api/admin/dashboard", {
-           headers: {
-             "Authorization": `Bearer ${token}`,
-             "Accept": "application/json"
-           }
-        });
-        const data = await res.json();
-        if (res.ok) {
-           setStats(data);
-        }
-      } catch (err) {
-        console.error("Error fetching stats:", err);
-      }
-    };
-    
     fetchStats();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/admin/dashboard`, {
+         headers: {
+           "Authorization": `Bearer ${token}`,
+           "Accept": "application/json"
+         }
+      });
+      const data = await res.json();
+      if (res.ok) {
+         setStats(data);
+      }
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+    }
+  };
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -101,7 +103,7 @@ const DashboardHome = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {stats.topProducts.slice(0, 5).map((product, idx) => (
+                    {stats.topProducts && stats.topProducts.slice(0, 5).map((product, idx) => (
                     <tr
                         key={idx}
                         className="border-b border-gray-50 hover:bg-amber-50/30 transition duration-200 group"

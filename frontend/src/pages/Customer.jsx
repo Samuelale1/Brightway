@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
+import { API_BASE_URL, BASE_URL } from "../api"; 
 
 const Customer = () => {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [showOrders, setShowOrders] = useState(false); // ✅ New: "My Orders" Modal
-  const [orders, setOrders] = useState([]); // ✅ New: User's orders
-  const [darkMode, setDarkMode] = useState(false); // ✅ New: Dark Mode
+  const [showOrders, setShowOrders] = useState(false); 
+  const [orders, setOrders] = useState([]); 
+  const [darkMode, setDarkMode] = useState(false); 
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const categories = [
@@ -25,7 +26,6 @@ const Customer = () => {
 
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // ✅ Fetch products
   useEffect(() => {
     fetchProducts();
     if (localStorage.getItem("theme") === "dark") setDarkMode(true);
@@ -45,7 +45,7 @@ const Customer = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/products");
+      const res = await fetch(`${API_BASE_URL}/products`); 
       const data = await res.json();
       setProducts(data);
     } catch (err) {
@@ -55,12 +55,11 @@ const Customer = () => {
     }
   };
 
-  // ✅ Fetch My Orders
   const fetchMyOrders = async () => {
     if(!user) return;
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://127.0.0.1:8000/api/orders?user_id=${user.id}`, { // sending user_id as query param just in case
+      const res = await fetch(`${API_BASE_URL}/orders?user_id=${user.id}`, { 
          headers: {
           "Authorization": `Bearer ${token}`,
           "Accept": "application/json"
@@ -79,7 +78,6 @@ const Customer = () => {
     }
   };
 
-  // ✅ Add product to cart
   const addToCart = (product) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.id === product.id);
@@ -140,12 +138,12 @@ const Customer = () => {
         total_price: total,
       };
 
-      const res = await fetch("http://127.0.0.1:8000/api/orders", {
+      const res = await fetch(`${API_BASE_URL}/orders`, { // ✅ Use variable
         method: "POST",
         headers: { 
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "Authorization": `Bearer ${token}` // ✅ Fixed: Sending Token
+            "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify(orderData),
       });
@@ -271,7 +269,7 @@ const Customer = () => {
                     
                     <div className="h-56 overflow-hidden">
                         {product.image ? (
-                            <img src={`http://127.0.0.1:8000/storage/${product.image}`} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                            <img src={`${BASE_URL}/storage/${product.image}`} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" /> // ✅ Use variable
                         ) : (
                             <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400">No Image</div>
                         )}
@@ -322,7 +320,7 @@ const Customer = () => {
                         cart.map((item) => (
                             <div key={item.id} className={`flex items-center gap-4 p-4 rounded-xl ${darkMode ? "bg-white/5" : "bg-gray-50"}`}>
                                 <div className="w-16 h-16 rounded-lg bg-gray-200 overflow-hidden shrink-0">
-                                   {item.image && <img src={`http://127.0.0.1:8000/storage/${item.image}`} className="w-full h-full object-cover" />}
+                                   {item.image && <img src={`${BASE_URL}/storage/${item.image}`} className="w-full h-full object-cover" />} {/* ✅ Use variable */}
                                 </div>
                                 <div className="flex-1">
                                     <h4 className="font-bold">{item.name}</h4>

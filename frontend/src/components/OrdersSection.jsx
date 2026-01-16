@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import ModalWrapper from "../components/ModalWrapper"; 
+import ModalWrapper from "../components/ModalWrapper";
+import { API_BASE_URL } from "../api"; 
 
 const OrdersSection = () => {
   const [orders, setOrders] = useState([]);
@@ -16,7 +17,7 @@ const OrdersSection = () => {
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://127.0.0.1:8000/api/orders", {
+      const res = await fetch(`${API_BASE_URL}/orders`, {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Accept": "application/json"
@@ -31,10 +32,29 @@ const OrdersSection = () => {
   };
 
   // ✅ Fetch delivery persons
+  const handleTreatOrder = async (orderId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/sales/order/${orderId}`, { 
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+      if (res.ok) setDeliveryPersons(data.delivery_persons || []);
+      else console.error("Failed to load delivery persons:", data);
+    } catch (err) {
+      console.error("Error fetching delivery persons:", err);
+    }
+  };
+
+  // ✅ Fetch delivery persons
   const fetchDeliveryPersons = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://127.0.0.1:8000/api/delivery-persons", {
+      const res = await fetch(`${API_BASE_URL}/delivery-persons`, { 
         headers: {
           "Authorization": `Bearer ${token}`,
           "Accept": "application/json"
@@ -77,7 +97,7 @@ const OrdersSection = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://127.0.0.1:8000/api/orders/${selectedOrder.id}/assign-delivery`,
+        `${API_BASE_URL}/orders/${selectedOrder.id}/assign-delivery`, 
         {
           method: "PUT",
           headers: { 
@@ -114,7 +134,7 @@ const OrdersSection = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://127.0.0.1:8000/api/orders/${orderId}/confirm-payment`,
+        `${API_BASE_URL}/orders/${orderId}/confirm-payment`, 
         { 
           method: "PUT", 
           headers: { 
@@ -139,7 +159,6 @@ const OrdersSection = () => {
     }
   };
 
-  // ✅ Status Colors (Updated for premium look)
   const getDeliveryStatusColor = (status) => {
     switch (status) {
       case "pending": return "bg-amber-100 text-amber-700 border border-amber-200";

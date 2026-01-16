@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../api"; 
 
 export default function Checkout() {
-  const [cartItems, setCartItems] = useState([]);
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const [cartItems, setCartItems] = useState(state?.cart || []);
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("delivery");
@@ -10,13 +14,16 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Retrieve cart items (example: from localStorage or backend)
-    const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
-    setCartItems(storedCart);
-
-    const totalAmount = storedCart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    setTotal(totalAmount);
-  }, []);
+  
+    if (!state?.cart && !localStorage.getItem("cart")) {
+       navigate("/customer");
+    }
+    
+    if (cartItems.length > 0) {
+        const totalAmount = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        setTotal(totalAmount);
+    }
+  }, [cartItems, state, navigate]);
 
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
@@ -24,7 +31,8 @@ export default function Checkout() {
     setMessage("");
 
     try {
-      const userId = localStorage.getItem("userId"); // Or from your auth system
+      const user = JSON.parse(localStorage.getItem("user"));
+      const userId = user?.id; 
 
       const payload = {
         user_id: userId,
@@ -38,22 +46,22 @@ export default function Checkout() {
         payment_method: paymentMethod,
       };
 
-      const res = await fetch("http://127.0.0.1:8000/api/orders", {
+      const res = await fetch(`${API_BASE_URL}/orders`, {
         method: "POST",
-        credentials: 'include',
         headers: { 
           "Content-Type": "application/json",
           "Accept": "application/json",
-          "X-Requested-With": "XMLHttpRequest"
-    },
-    body: JSON.stringify(orderData),
-});
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify(payload), 
+      });
 
       const data = await res.json();
 
       if (res.ok) {
         setMessage("✅ Order placed successfully!");
-        localStorage.removeItem("cart"); // clear cart after successful order
+        localStorage.removeItem("cart"); 
+        setTimeout(() => navigate("/customer"), 2000);
       } else {
         setMessage("❌ " + (data.message || "Failed to place order."));
       }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Spinner from "../../../components/Spinner";
+import { API_BASE_URL } from "../../../api"; // ✅ Import API config
 
 const RoleUsersPage = ({ roleName, roleKey }) => {
   const [users, setUsers] = useState([]);
@@ -11,7 +12,7 @@ const RoleUsersPage = ({ roleName, roleKey }) => {
     const token = localStorage.getItem("token");
 
     const res = await fetch(
-      `http://127.0.0.1:8000/api/admin/users/role/${roleKey}?search=${search}`,
+      `${API_BASE_URL}/admin/users/role/${roleKey}?search=${search}`, // ✅ Use variable
       {
         headers: {
           Authorization: `Bearer ${token}`,

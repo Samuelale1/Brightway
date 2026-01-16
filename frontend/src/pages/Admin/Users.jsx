@@ -3,6 +3,7 @@ import { UserCog, UserCheck, Users as UsersIcon, Truck, ChevronRight } from "luc
 import Spinner from "../../components/Spinner";
 import UsersList from "./UsersList";
 import DeliveryPersonsList from "./DeliveryPersonsList";
+import { API_BASE_URL } from "../../api";
 
 const cardsMeta = [
   { key: "admins", title: "Admins", color: "bg-blue-100 text-blue-700", icon: <UserCog size={20} /> },
@@ -25,7 +26,7 @@ const Users = () => {
   const fetchCounts = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/admin/users-count", {
+      const res = await fetch(`${API_BASE_URL}/admin/users-count`, {
         headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
       });
 
@@ -35,6 +36,33 @@ const Users = () => {
       console.error("Error fetching counts:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleUserStatus = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/admin/users/${id}/toggle`, { // ✅ Use variable
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) fetchUsers();
+    } catch (error) {
+      console.error("Error toggling user:", error);
+    }
+  };
+
+  const deleteUser = async (id) => {
+    if (!window.confirm("Are you sure?")) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/admin/users/${id}`, { // ✅ Use variable
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) fetchUsers();
+    } catch (error) {
+      console.error("Error deleting user:", error);
     }
   };
 

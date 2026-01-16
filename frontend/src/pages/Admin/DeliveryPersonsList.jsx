@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Spinner from "../../components/Spinner";
+import { API_BASE_URL } from "../../api"; // ✅ Import API config
 
 const DeliveryPersonsList = ({ onBack }) => {
   const [items, setItems] = useState([]);
@@ -16,7 +17,7 @@ const DeliveryPersonsList = ({ onBack }) => {
 
   const fetchItems = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/delivery-persons", {
+      const res = await fetch(`${API_BASE_URL}/delivery-persons`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",

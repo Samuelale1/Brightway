@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ModalWrapper from "../../components/ModalWrapper";
+import { API_BASE_URL } from "../../api"; // ✅ Import API config
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -14,11 +15,10 @@ const Orders = () => {
   
 
   // ✅ Fetch all orders
-  // ✅ Fetch all orders
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://127.0.0.1:8000/api/orders", {
+      const res = await fetch(`${API_BASE_URL}/orders`, {
         headers: {
             "Authorization": `Bearer ${token}`,
             "Accept": "application/json"
@@ -32,11 +32,10 @@ const Orders = () => {
   };
 
   // ✅ Fetch delivery persons
-  // ✅ Fetch delivery persons
   const fetchDeliveryPersons = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://127.0.0.1:8000/api/delivery-persons", {
+      const res = await fetch(`${API_BASE_URL}/delivery-persons`, { // ✅ Use variable
          headers: {
             "Authorization": `Bearer ${token}`,
             "Accept": "application/json"
@@ -71,7 +70,7 @@ const Orders = () => {
 
     try {
       const res = await fetch(
-        `http://127.0.0.1:8000/api/orders/${selectedOrder.id}/assign-delivery`,
+        `${API_BASE_URL}/orders/${selectedOrder.id}/assign-delivery`, // ✅ Use variable
         {
           method: "PUT",
           headers: { 
@@ -103,7 +102,7 @@ const Orders = () => {
   const handleConfirmPayment = async (orderId) => {
     try {
       const res = await fetch(
-        `http://127.0.0.1:8000/api/orders/${orderId}/confirm-payment`,
+        `${API_BASE_URL}/orders/${orderId}/confirm-payment`, // ✅ Use variable
         {
           method: "PUT",
           headers: { 
@@ -124,9 +123,6 @@ const Orders = () => {
       alert("⚠️ Network error while confirming payment.");
     }
   };
-
-  
-
 
   // ✅ Status color helpers
   const getStatusColor = (status) => {
