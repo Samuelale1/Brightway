@@ -41,11 +41,19 @@ const Login = () => {
       const data = await res.json();
 
       if (!res.ok || data.status === "error") {
-        if (typeof data.message === "string") setError(data.message);
-        else if (typeof data.message === "object")
-          setError(Object.values(data.message).flat().join(" "));
-        else setError("Something went wrong");
+        const isValidationError = res.status === 422 || res.status === 401;
+        const rawMessage = typeof data.message === "string" 
+          ? data.message 
+          : (typeof data.message === "object" ? Object.values(data.message).flat().join(" ") : "");
 
+        // Filter out system errors (SQL, Query, etc.)
+        const isSystemError = /sql|query|exception|stack|at /i.test(rawMessage);
+
+        if (isValidationError && !isSystemError) {
+          setError(rawMessage || "Invalid data provided");
+        } else {
+          setError("Something went wrong. Please try again later.");
+        }
         return;
       }
 
