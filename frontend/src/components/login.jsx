@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Spinner from "../components/Spinner"; 
 import { API_BASE_URL } from "../api"; 
+import { connectEcho } from "../echo";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -60,6 +61,9 @@ const Login = () => {
       setMessage(data.message || "Success!");
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("token", data.token);
+
+      // ✅ Initialize Echo connection right away
+      connectEcho();
 
       if (data.user.role === "admin") navigate("/admin");
       else if (data.user.role === "salesperson") navigate("/sales");

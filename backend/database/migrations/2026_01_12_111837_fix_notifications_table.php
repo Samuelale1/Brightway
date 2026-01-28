@@ -13,6 +13,7 @@ return new class extends Migration
     {
         // Drop existing incompatible notifications table
         Schema::dropIfExists('notifications');
+        Schema::dropIfExists('notification');
 
         // Create standard Laravel notifications table
         Schema::create('notifications', function (Blueprint $table) {
@@ -31,5 +32,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('notifications');
+        Schema::dropIfExists('notification');
     }
 };

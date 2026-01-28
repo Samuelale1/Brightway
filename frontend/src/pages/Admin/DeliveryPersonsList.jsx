@@ -1,10 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Plus } from "lucide-react";
 import Spinner from "../../components/Spinner";
+import ModalWrapper from "../../components/ModalWrapper";
 import { API_BASE_URL } from "../../api"; // ✅ Import API config
 
 const DeliveryPersonsList = ({ onBack }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newPerson, setNewPerson] = useState({ name: "", phone: "" });
+  const [adding, setAdding] = useState(false);
 
   const token = localStorage.getItem("token");
   const hasFetched = useRef(false); // ✅ prevents double fetch in React 18
@@ -44,6 +49,34 @@ const DeliveryPersonsList = ({ onBack }) => {
     }
   };
 
+  const handleAddPerson = async (e) => {
+    e.preventDefault();
+    setAdding(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/delivery-persons`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        body: JSON.stringify(newPerson),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowAddModal(false);
+        setNewPerson({ name: "", phone: "" });
+        fetchItems();
+      } else {
+        alert(data.message || "Failed to add delivery person");
+      }
+    } catch (err) {
+      console.error("Error adding delivery person:", err);
+    } finally {
+      setAdding(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -61,7 +94,54 @@ const DeliveryPersonsList = ({ onBack }) => {
         ← Back
       </button>
 
-      <h2 className="text-xl font-semibold">Delivery Persons</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Delivery Persons</h2>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-orange-700 transition"
+        >
+          <Plus size={20} />
+          Add Delivery Person
+        </button>
+      </div>
+
+      <ModalWrapper
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Add New Delivery Person"
+      >
+        <form onSubmit={handleAddPerson} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <input
+              type="text"
+              required
+              value={newPerson.name}
+              onChange={(e) => setNewPerson({ ...newPerson, name: e.target.value })}
+              className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none"
+              placeholder="e.g. John Doe"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            <input
+              type="text"
+              required
+              value={newPerson.phone}
+              onChange={(e) => setNewPerson({ ...newPerson, phone: e.target.value })}
+              className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-orange-500 outline-none"
+              placeholder="+234..."
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={adding}
+            className="w-full py-3 bg-orange-600 text-white font-bold rounded-xl shadow-lg hover:bg-orange-700 transition disabled:opacity-50"
+          >
+            {adding ? "Adding..." : "Add Delivery Person"}
+          </button>
+        </form>
+      </ModalWrapper>
 
       <div className="bg-white rounded shadow overflow-x-auto">
         <table className="w-full border-collapse">

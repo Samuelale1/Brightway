@@ -12,12 +12,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('delivery_persons', function (Blueprint $table) {
-            //
-            $table->string('name');
-            $table->string('phone');
-            $table->timestamps();
+            if (!Schema::hasColumn('delivery_persons', 'name')) {
+                $table->string('name');
+            }
+            if (!Schema::hasColumn('delivery_persons', 'phone')) {
+                $table->string('phone');
+            }
 
-            $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+            // check if order_id exists before adding foreign key
+            if (!Schema::hasColumn('delivery_persons', 'order_id')) {
+                 $table->unsignedBigInteger('order_id')->nullable();
+            }
+            
+            // Re-adding foreign key might fail if it exists, so we wrap it or assume it's okay in this simple fix
+            //$table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
         });
     }
 

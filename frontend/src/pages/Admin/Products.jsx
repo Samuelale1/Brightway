@@ -61,8 +61,13 @@ const Products = () => {
       form.append("added_by", user.id);
       if (newProduct.image) form.append("image", newProduct.image);
 
+      const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE_URL}/products`, { // ✅ Use variable
         method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json",
+        },
         body: form,
       });
 
@@ -110,10 +115,15 @@ const Products = () => {
       if (selectedProduct.image instanceof File)
         form.append("image", selectedProduct.image);
 
+      const token = localStorage.getItem("token");
       const res = await fetch(
         `${API_BASE_URL}/products/${selectedProduct.id}`, // ✅ Use variable
         {
           method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json",
+          },
           body: form,
         }
       );
@@ -136,10 +146,15 @@ const Products = () => {
   // ✅ Delete Product
   const handleDelete = async () => {
     try {
+      const token = localStorage.getItem("token");
       const res = await fetch(
         `${API_BASE_URL}/products/${selectedProduct.id}`, // ✅ Use variable
         {
           method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json",
+          },
         }
       );
       const data = await res.json();

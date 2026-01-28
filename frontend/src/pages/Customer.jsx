@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { API_BASE_URL, BASE_URL } from "../api"; 
+import { connectEcho } from "../echo";
 
 const Customer = () => {
   const [products, setProducts] = useState([]);
@@ -23,13 +24,53 @@ const Customer = () => {
   });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [realtimeNotification, setRealtimeNotification] = useState(null); 
 
   const user = JSON.parse(localStorage.getItem("user"));
 
-  useEffect(() => {
-    fetchProducts();
-    if (localStorage.getItem("theme") === "dark") setDarkMode(true);
-  }, []);
+    useEffect(() => {
+        fetchProducts();
+        if (localStorage.getItem("theme") === "dark") setDarkMode(true);
+
+        // Ensure Echo is connected
+        connectEcho();
+
+        // Real-time Listeners
+        if (user?.id && window.Echo) {
+            console.log(`[Customer] Subscribing to private user channel: ${user.id}`);
+            window.Echo.private(`App.Models.User.${user.id}`)
+                .listen('OrderTreated', (e) => {
+                    console.log("[Customer] Order Treated event received:", e);
+                    setRealtimeNotification({
+                        title: "Order Processed! 🍳",
+                        message: "Your order has been treated and is on its way!",
+                        type: "info"
+                    });
+                    fetchMyOrders(); 
+                    
+                    // Auto hide after 5s
+                    setTimeout(() => setRealtimeNotification(null), 5000);
+                })
+                .listen('OrderPaid', (e) => {
+                    console.log("[Customer] Order Paid event received:", e);
+                     setRealtimeNotification({
+                        title: "Payment Confirmed! 🎉",
+                        message: "Your order is fully paid. Get ready to eat!",
+                        type: "success"
+                    });
+                    fetchMyOrders();
+     
+                     // Auto hide after 5s
+                     setTimeout(() => setRealtimeNotification(null), 5000);
+                });
+        }
+
+        return () => {
+             if (window.Echo && user?.id) {
+                window.Echo.leave(`App.Models.User.${user.id}`);
+             }
+        }
+    }, [user?.id]);
 
   const toggleTheme = () => {
     setDarkMode(!darkMode);
@@ -435,6 +476,22 @@ const Customer = () => {
                 </div>
             </div>
         </div>
+      )}
+
+      {/* Dopamine Notification Popup */}
+      {realtimeNotification && (
+          <div className="fixed top-24 right-6 z-50 animate-bounce-in">
+              <div className={`p-6 rounded-2xl shadow-2xl border-2 flex items-center gap-4 max-w-sm ${darkMode ? "bg-slate-800 border-amber-500 text-white" : "bg-white border-amber-400 text-slate-800"}`}>
+                  <div className="text-4xl">
+                      {realtimeNotification.type === 'success' ? '🥳' : '🚀'}
+                  </div>
+                  <div>
+                      <h4 className="font-exhibit font-bold text-lg text-amber-500">{realtimeNotification.title}</h4>
+                      <p className="text-sm opacity-90">{realtimeNotification.message}</p>
+                  </div>
+                  <button onClick={() => setRealtimeNotification(null)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500">✕</button>
+              </div>
+          </div>
       )}
 
     </div>

@@ -1,25 +1,74 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ProductsSection from "../components/ProductsSection";
 import OrdersSection from "../components/OrdersSection";
 import OrderDetails from "../components/OrderDetails"; 
+import NotificationSidebar from "../components/NotificationSidebar";
+import { connectEcho } from "../echo";
 import {
   LayoutDashboard,
   Package,
   FileText,
   LogOut,
-  UserCircle
+  UserCircle,
+  Bell
 } from "lucide-react"; 
 
 const Sales = () => {
   const [activePage, setActivePage] = useState("products");
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
+  // Notification State
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const user = JSON.parse(localStorage.getItem("user"));
+
+  useEffect(() => {
+    // Ensure Echo is connected (important for direct navigation/refresh)
+    connectEcho();
+
+    // Listen for new orders
+    if (window.Echo) {
+      console.log("[Sales] Subscribing to sales channel...");
+      window.Echo.channel('sales')
+        .listen('OrderPlaced', (e) => {
+          console.log("[Sales] New order received via Echo:", e.order);
+          const newNotif = {
+            id: Date.now(),
+            order_id: e.order.id,
+            message: `New order received! Total: $${e.order.total_amount}`,
+            created_at: new Date(),
+            read_at: null
+          };
+          
+          setNotifications(prev => [newNotif, ...prev]);
+          setUnreadCount(prev => prev + 1);
+          
+          // Optional: Play sound
+          const audio = new Audio('/notification.mp3'); 
+          audio.play().catch(err => console.log('Audio play failed', err));
+        });
+    }
+
+    return () => {
+      if (window.Echo) {
+        window.Echo.leave('sales');
+      }
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
     window.location.href = "/";
+  };
+
+  const markAsRead = (id) => {
+    setNotifications(prev => prev.map(n => 
+      n.id === id ? { ...n, read_at: new Date() } : n
+    ));
+    setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
   // ✅ when the user clicks "Back to Orders" in OrderDetails
@@ -45,7 +94,7 @@ const Sales = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans">
-      {/* ✅ Sidebar */}
+      {/* ✅ Main Sidebar */}
       <aside
         className={`${
           isSidebarOpen ? "w-64" : "w-20"
@@ -99,6 +148,20 @@ const Sales = () => {
           </div>
           
           <div className="flex items-center gap-4">
+            
+            {/* Notification Bell */}
+            <button 
+              onClick={() => setIsNotificationOpen(true)}
+              className="relative p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600 hover:text-amber-600"
+            >
+              <Bell size={24} />
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-white">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
             <div className="text-right hidden md:block">
                 <span className="block text-sm font-bold text-slate-700">{user?.name || "Salesperson"}</span>
                 <span className="block text-xs text-gray-500">Sales Staff</span>
@@ -130,6 +193,14 @@ const Sales = () => {
           </div>
         </div>
       </main>
+
+      {/* Notification Sidebar Component */}
+      <NotificationSidebar 
+        isOpen={isNotificationOpen} 
+        onClose={() => setIsNotificationOpen(false)}
+        notifications={notifications}
+        markAsRead={markAsRead}
+      />
     </div>
   );
 };

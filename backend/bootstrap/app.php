@@ -12,6 +12,10 @@ return Application::configure(dirname(__DIR__))
         __DIR__.'/../routes/console.php',
         '/up'
     )
+    ->withBroadcasting(
+        __DIR__.'/../routes/channels.php',
+        ['prefix' => 'api', 'middleware' => ['api', 'auth:api']],
+    )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
         

@@ -10,7 +10,7 @@ export function NotificationProvider({ children }) {
   const API_BASE = 'http://localhost:8000/api';
 
   const getAuthHeaders = () => {
-    const token = localStorage.getItem('api_token');
+    const token = localStorage.getItem('token');
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
@@ -19,7 +19,7 @@ export function NotificationProvider({ children }) {
 
   // Fetch notifications from API
   const fetchNotifications = useCallback(async () => {
-    const token = localStorage.getItem('api_token');
+    const token = localStorage.getItem('token');
     if (!token) return;
 
     setIsLoading(true);

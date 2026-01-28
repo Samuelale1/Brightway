@@ -30,10 +30,10 @@ const Reports = () => {
       };
 
       const [overviewRes, dailyRes, productsRes, staffRes] = await Promise.all([
-        fetch(`${API_BASE}/overview`, { headers }),
-        fetch(`${API_BASE}/daily-revenue?days=7`, { headers }),
-        fetch(`${API_BASE}/top-products`, { headers }),
-        fetch(`${API_BASE}/staff-performance`, { headers }),
+        fetch(`${API_BASE_URL}/reports/overview`, { headers }),
+        fetch(`${API_BASE_URL}/reports/daily-revenue?days=7`, { headers }),
+        fetch(`${API_BASE_URL}/reports/top-products`, { headers }),
+        fetch(`${API_BASE_URL}/reports/staff-performance`, { headers }),
       ]);
 
       const [overviewData, dailyData, productsData, staffData] =

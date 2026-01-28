@@ -8,6 +8,10 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use App\Events\OrderPlaced;
+use App\Events\OrderTreated;
+use App\Events\OrderPaid;
 
 class OrderController extends Controller
 {
@@ -102,9 +106,11 @@ public function index(Request $request)
                     OrderItem::insert($orderItems);
                 }
 
-                // ✅ Real-time notification to all admins and salespeople
                 return $order;
             });
+
+            // ✅ Real-time notification to all admins and salespeople
+            broadcast(new OrderPlaced($order))->toOthers();
 
             return response()->json([
                 'status' => 'success',
@@ -135,13 +141,21 @@ public function index(Request $request)
 
     // Assign accountability
     $order->salesperson_id = $request->salesperson_id ?? null;
-    $order->admin_id = $request->salesperson_id ? null : auth()->id();
+    $order->admin_id = $request->salesperson_id ? null : Auth::id();
 
     // Order is now treated
     $order->delivery_status = 'sent';
     $order->sent_out_at = now();
 
     $order->save();
+
+    // ✅ Notify Customer
+    try {
+        broadcast(new OrderTreated($order));
+    } catch (\Exception $e) {
+        // Log error but don't fail the request
+        Log::error('OrderTreated broadcast failed: ' . $e->getMessage());
+    }
 
     $order->load(['user', 'items.product', 'deliveryPerson']);
 
@@ -213,7 +227,14 @@ public function index(Request $request)
             ]);
 
             
+            
             // ✅ Notify Customer
+            try {
+                broadcast(new OrderPaid($order));
+            } catch (\Exception $e) {
+                 Log::error('OrderPaid broadcast failed: ' . $e->getMessage());
+            }
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Payment confirmed and order marked as delivered!',

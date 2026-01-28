@@ -36,6 +36,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboardStats']);
     Route::get('/admin/users', [UserController::class, 'allUsers']);
     Route::get('/admin/users-count', [UserController::class, 'userCounts']);
+    Route::post('/admin/users', [UserController::class, 'adminCreateUser']);
     Route::put('/admin/users/{id}/role', [UserController::class, 'updateRole']);
     Route::put('/admin/users/{id}/toggle', [UserController::class, 'toggleStatus']);
     Route::put('/admin/users/{id}/reset-password', [UserController::class, 'resetPassword']);

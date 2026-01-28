@@ -12,14 +12,18 @@ return new class extends Migration
    public function up()
 {
     Schema::table('orders', function (Blueprint $table) {
-        $table->timestamp('sent_out_at')->nullable()->after('delivery_status');
+        if (!Schema::hasColumn('orders', 'sent_out_at')) {
+            $table->timestamp('sent_out_at')->nullable()->after('delivery_status');
+        }
     });
 }
 
 public function down()
 {
     Schema::table('orders', function (Blueprint $table) {
-        $table->dropColumn('sent_out_at');
+        if (Schema::hasColumn('orders', 'sent_out_at')) {
+            $table->dropColumn('sent_out_at');
+        }
     });
 }
 
