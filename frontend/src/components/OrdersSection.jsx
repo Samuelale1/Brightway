@@ -131,6 +131,7 @@ const OrdersSection = () => {
   };
 
   const handleConfirmPayment = async (orderId) => {
+    if (!window.confirm("Confirm payment and mark order as delivered?")) return;
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(

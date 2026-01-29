@@ -113,25 +113,29 @@ const ProductsSection = () => {
   // ✅ Edit Product
   const handleEdit = async (e) => {
     e.preventDefault();
+    if (!selectedProduct) return;
     setLoading(true);
     setMessage("");
 
     try {
       const form = new FormData();
       form.append("name", selectedProduct.name);
-      form.append("description", selectedProduct.description);
+      form.append("description", selectedProduct.description || "");
       form.append("price", selectedProduct.price);
       form.append("quantity", selectedProduct.quantity);
-      if(selectedProduct.category) form.append("category", selectedProduct.category);
-      if(selectedProduct.availability) form.append("availability", selectedProduct.availability);
-      if (selectedProduct.image instanceof File)
+      if (selectedProduct.category) form.append("category", selectedProduct.category);
+      if (selectedProduct.availability) form.append("availability", selectedProduct.availability);
+      
+      // Handle image: either a new File object or the existing path
+      if (selectedProduct.image instanceof File) {
         form.append("image", selectedProduct.image);
+      }
 
       const token = localStorage.getItem("token");
       const res = await fetch(
         `${API_BASE_URL}/products/${selectedProduct.id}`,
         {
-          method: "POST",
+          method: "POST", // Laravel multipart/form-data update requires POST
           headers: {
             "Authorization": `Bearer ${token}`,
             "Accept": "application/json"
@@ -140,20 +144,13 @@ const ProductsSection = () => {
         }
       );
 
-      const text = await res.text();
-      let data = null;
-      try {
-        data = text ? JSON.parse(text) : null;
-      } catch {
-        console.error("Non-JSON response:", text);
-      }
-
+      const data = await res.json();
       if (res.ok) {
-        setMessage("✅ Product updated!");
+        setMessage("✅ Product updated successfully!");
         setShowEditModal(false);
         fetchProducts();
       } else {
-        setMessage(data?.message || text || "Error updating product");
+        setMessage(data?.message || "Error updating product");
       }
     } catch (err) {
       console.error("Error updating:", err);
@@ -165,6 +162,7 @@ const ProductsSection = () => {
 
   // ✅ Delete Product
   const handleDelete = async () => {
+    if (!selectedProduct) return;
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
@@ -177,16 +175,17 @@ const ProductsSection = () => {
           }
         }
       );
-      const data = await res.json();
       if (res.ok) {
-        setMessage("🗑️ Product deleted");
+        setMessage("🗑️ Product deleted successfully!");
         setDeleteModal(false);
         fetchProducts();
       } else {
-        setMessage(data.message || "Error deleting");
+        const data = await res.json();
+        setMessage(data.message || "Error deleting product");
       }
     } catch (err) {
       console.error("Error deleting:", err);
+      setMessage("⚠️ Network error");
     }
   };
 
