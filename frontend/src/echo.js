@@ -6,12 +6,10 @@ window.Pusher = Pusher;
 
 // Echo configuration
 const echoConfig = {
-    broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
-    wsHost: import.meta.env.VITE_REVERB_HOST,
-    wsPort: import.meta.env.VITE_REVERB_PORT,
-    wssPort: import.meta.env.VITE_REVERB_PORT,
-    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+    broadcaster: 'pusher',
+    key: import.meta.env.VITE_PUSHER_APP_KEY,
+    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
+    forceTLS: true,
     enabledTransports: ['ws', 'wss'],
     authEndpoint: `${API_BASE_URL}/broadcasting/auth`,
     auth: {
@@ -30,7 +28,7 @@ export function connectEcho() {
         // Update auth header with current token
         echoConfig.auth.headers.Authorization = `Bearer ${token}`;
         window.Echo = new Echo(echoConfig);
-        console.log('[Echo] Connected to Reverb');
+        console.log('[Echo] Connected to Pusher');
     }
 }
 
@@ -41,7 +39,7 @@ export function disconnectEcho() {
     if (window.Echo) {
         window.Echo.disconnect();
         window.Echo = null;
-        console.log('[Echo] Disconnected from Reverb');
+        console.log('[Echo] Disconnected from Pusher');
     }
 }
 

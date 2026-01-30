@@ -35,4 +35,9 @@ class OrderTreated implements ShouldBroadcast
             new PrivateChannel('App.Models.User.' . $this->order->user_id),
         ];
     }
+
+    public function broadcastAs(): string
+    {
+        return 'OrderTreated';
+    }
 }

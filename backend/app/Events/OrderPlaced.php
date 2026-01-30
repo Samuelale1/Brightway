@@ -36,4 +36,9 @@ class OrderPlaced implements ShouldBroadcast
             new Channel('sales'),
         ];
     }
+
+    public function broadcastAs(): string
+    {
+        return 'OrderPlaced';
+    }
 }

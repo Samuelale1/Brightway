@@ -39,7 +39,7 @@ const Customer = () => {
         if (user?.id && window.Echo) {
             console.log(`[Customer] Subscribing to private user channel: ${user.id}`);
             window.Echo.private(`App.Models.User.${user.id}`)
-                .listen('OrderTreated', (e) => {
+                .listen('.OrderTreated', (e) => {
                     console.log("[Customer] Order Treated event received:", e);
                     setRealtimeNotification({
                         title: "Order Processed! 🍳",
@@ -51,7 +51,7 @@ const Customer = () => {
                     // Auto hide after 5s
                     setTimeout(() => setRealtimeNotification(null), 5000);
                 })
-                .listen('OrderPaid', (e) => {
+                .listen('.OrderPaid', (e) => {
                     console.log("[Customer] Order Paid event received:", e);
                      setRealtimeNotification({
                         title: "Payment Confirmed! 🎉",
@@ -130,6 +130,19 @@ const Customer = () => {
         );
       }
       return [...prev, { ...product, quantity: 1 }];
+    });
+  };
+
+  // ✅ New: Update quantity with +/-
+  const updateQuantity = (id, delta) => {
+    setCart((prev) => {
+      return prev.map((item) => {
+        if (item.id === id) {
+          const newQty = item.quantity + delta;
+          return newQty > 0 ? { ...item, quantity: newQty } : null;
+        }
+        return item;
+      }).filter(Boolean); // Remove if null (qty <= 0)
     });
   };
 
@@ -222,31 +235,34 @@ const Customer = () => {
     <div className={`min-h-screen transition-colors duration-300 font-sans ${darkMode ? "bg-slate-900 text-gray-100" : "bg-gray-50 text-gray-800"}`}>
       
       {/* Navbar */}
-      <nav className={`fixed top-0 w-full z-50 px-6 py-4 flex justify-between items-center transition-colors backdrop-blur-md ${darkMode ? "bg-slate-900/80 border-b border-white/10" : "bg-white/80 border-b border-gray-100"}`}>
-        <div className="flex items-center gap-3">
-            <img src="/LOGO.png" alt="Brightway" className="w-10 h-10 drop-shadow-md" />
-            <span className={`text-xl font-bold tracking-tight ${darkMode ? "text-amber-400" : "text-slate-800"}`}>Brightway</span>
+      <nav className={`fixed top-0 w-full z-50 px-4 md:px-8 py-4 flex justify-between items-center transition-all backdrop-blur-md ${darkMode ? "bg-slate-900/80 border-b border-white/10" : "bg-white/80 border-b border-gray-100"}`}>
+        <div className="flex items-center gap-2 md:gap-3">
+            <img src="/LOGO.png" alt="Brightway" className="w-8 h-8 md:w-10 md:h-10 drop-shadow-md" />
+            <span className={`text-lg md:text-xl font-bold tracking-tight ${darkMode ? "text-amber-400" : "text-slate-800"}`}>Brightway</span>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 md:gap-8">
             <button onClick={toggleTheme} className={`p-2 rounded-full transition ${darkMode ? "bg-white/10 hover:bg-white/20 text-yellow-400" : "bg-gray-100 hover:bg-gray-200 text-slate-600"}`}>
                 {darkMode ? "☀️" : "🌙"}
             </button>
 
-            <button onClick={fetchMyOrders} className={`font-medium transition hover:text-amber-500 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+            <button onClick={fetchMyOrders} className={`hidden sm:block font-medium transition hover:text-amber-500 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
                 My Orders
             </button>
 
-            <button onClick={() => setShowCart(!showCart)} className="relative group">
-                <span className={`text-2xl transition ${darkMode ? "text-gray-200 group-hover:text-amber-400" : "text-gray-700 group-hover:text-amber-600"}`}>🛒</span>
+            {/* Mobile Orders Icon */}
+            <button onClick={fetchMyOrders} className="sm:hidden text-xl" title="My Orders">📋</button>
+
+            <button onClick={() => setShowCart(!showCart)} className="relative group p-1">
+                <span className={`text-xl md:text-2xl transition ${darkMode ? "text-gray-200 group-hover:text-amber-400" : "text-gray-700 group-hover:text-amber-600"}`}>🛒</span>
                 {cart.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm animate-bounce">
-                        {cart.length}
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] md:text-xs font-bold w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded-full shadow-sm animate-bounce">
+                        {cart.reduce((total, item) => total + item.quantity, 0)}
                     </span>
                 )}
             </button>
 
-             <button onClick={handleLogout} className={`p-2 rounded-full transition hover:bg-red-100 text-red-500`} title="Logout">
+             <button onClick={handleLogout} className="p-2 rounded-full transition hover:bg-red-50 text-red-500" title="Logout">
                 🚪
             </button>
         </div>
@@ -255,11 +271,11 @@ const Customer = () => {
       <div className="pt-24 px-6 max-w-7xl mx-auto pb-20">
       
         {/* User Welcome */}
-        <header className="mb-10 text-center">
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
-                Hungry? <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">Order Delicious Food.</span>
+        <header className="mb-8 md:mb-12 text-center max-w-3xl mx-auto">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold mb-4 leading-tight">
+                Hungry? <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">Delicious Food</span> Awaits.
             </h1>
-            <p className={`text-lg ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Delivered fresh to your doorstep in minutes.</p>
+            <p className={`text-sm md:text-xl font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Delivered fresh to your doorstep in minutes.</p>
         </header>
 
         {/* Categories */}
@@ -316,24 +332,33 @@ const Customer = () => {
                         )}
                     </div>
                     
-                    <div className="p-6">
-                        <div className="flex justify-between items-start mb-2">
-                             <h3 className={`text-lg font-bold line-clamp-1 ${darkMode ? "text-white" : "text-gray-800"}`}>{product.name}</h3>
-                             <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1 rounded-full">₦{product.price}</span>
+                    <div className="p-5 md:p-6 flex flex-col flex-1">
+                        <div className="flex justify-between items-start mb-2 gap-2">
+                             <h3 className={`text-base md:text-lg font-bold line-clamp-1 flex-1 ${darkMode ? "text-white" : "text-gray-800"}`}>{product.name}</h3>
+                             <span className="bg-amber-100 text-amber-800 text-xs md:text-sm font-bold px-2 md:px-3 py-1 rounded-full shrink-0">₦{product.price}</span>
                         </div>
-                        <p className={`text-sm mb-6 line-clamp-2 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{product.description || "Fresh and delicious."}</p>
+                        <p className={`text-xs md:text-sm mb-6 line-clamp-2 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{product.description || "Fresh and delicious."}</p>
                         
-                        <button 
-                           onClick={() => addToCart(product)} 
-                           disabled={product.availability === 'unavailable'}
-                           className={`w-full py-3 rounded-xl font-semibold shadow-lg transition-all active:scale-95 flex justify-center items-center gap-2
-                           ${product.availability === 'unavailable' 
-                             ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
-                             : "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-orange-500/30 hover:shadow-orange-500/50"}`}
-                        >
-                            <span>{product.availability === 'unavailable' ? "Sold Out" : "Add to Cart"}</span>
-                            {product.availability !== 'unavailable' && <span className="text-xl">+</span>}
-                        </button>
+                        <div className="mt-auto">
+                           {product.availability === 'unavailable' ? (
+                             <button disabled className="w-full py-3 rounded-xl font-semibold bg-gray-200 text-gray-500 cursor-not-allowed">Sold Out</button>
+                           ) : (
+                             cart.find(i => i.id === product.id) ? (
+                               <div className="flex items-center justify-between bg-amber-50 rounded-xl border border-amber-200 overflow-hidden">
+                                  <button onClick={() => updateQuantity(product.id, -1)} className="p-3 text-amber-600 hover:bg-amber-100 transition-colors font-bold text-lg">-</button>
+                                  <span className="font-extrabold text-amber-800">{cart.find(i => i.id === product.id).quantity}</span>
+                                  <button onClick={() => updateQuantity(product.id, 1)} className="p-3 text-amber-600 hover:bg-amber-100 transition-colors font-bold text-lg">+</button>
+                               </div>
+                             ) : (
+                               <button 
+                                 onClick={() => addToCart(product)} 
+                                 className="w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-600 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transition-all active:scale-95 flex justify-center items-center gap-2"
+                               >
+                                   Add to Cart +
+                               </button>
+                             )
+                           )}
+                        </div>
                     </div>
                 </div>
             ))}
@@ -359,16 +384,23 @@ const Customer = () => {
                         </div>
                     ) : (
                         cart.map((item) => (
-                            <div key={item.id} className={`flex items-center gap-4 p-4 rounded-xl ${darkMode ? "bg-white/5" : "bg-gray-50"}`}>
-                                <div className="w-16 h-16 rounded-lg bg-gray-200 overflow-hidden shrink-0">
-                                   {item.image && <img src={`${BASE_URL}/storage/${item.image}`} className="w-full h-full object-cover" />} {/* ✅ Use variable */}
+                            <div key={item.id} className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl ${darkMode ? "bg-white/5" : "bg-gray-50"}`}>
+                                <div className="w-14 h-14 md:w-16 md:h-16 rounded-lg bg-gray-200 overflow-hidden shrink-0">
+                                   {item.image && <img src={`${BASE_URL}/storage/${item.image}`} className="w-full h-full object-cover" />}
                                 </div>
-                                <div className="flex-1">
-                                    <h4 className="font-bold">{item.name}</h4>
-                                    <p className="text-sm opacity-70">₦{item.price} x {item.quantity}</p>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-bold text-sm md:text-base truncate">{item.name}</h4>
+                                    <p className="text-xs opacity-70">₦{item.price}</p>
+                                    <div className="flex items-center gap-3 mt-2">
+                                        <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition">-</button>
+                                        <span className="font-bold text-sm">{item.quantity}</span>
+                                        <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition">+</button>
+                                    </div>
                                 </div>
-                                <div className="font-bold text-lg">₦{item.price * item.quantity}</div>
-                                <button onClick={() => removeFromCart(item.id)} className="text-red-500 hover:bg-red-500/10 p-2 rounded-full transition">🗑️</button>
+                                <div className="text-right">
+                                    <div className="font-bold text-sm md:text-lg">₦{item.price * item.quantity}</div>
+                                    <button onClick={() => removeFromCart(item.id)} className="text-red-500 text-xs mt-2 hover:underline">Remove</button>
+                                </div>
                             </div>
                         ))
                     )}
@@ -390,46 +422,46 @@ const Customer = () => {
       {/* Checkout Modal */}
       {showCheckout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCheckout(false)}></div>
-            <div className={`relative w-full max-w-lg rounded-3xl p-8 shadow-2xl scale-100 transition-all ${darkMode ? "bg-slate-800" : "bg-white"}`}>
-                <h2 className={`text-2xl font-bold mb-6 text-center ${darkMode ? "text-white" : "text-gray-800"}`}>Checkout</h2>
+            <div className="absolute inset-0 bg-black/60 backdrop-sm" onClick={() => setShowCheckout(false)}></div>
+            <div className={`relative w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-2xl scale-100 transition-all ${darkMode ? "bg-slate-800" : "bg-white"}`}>
+                <h2 className={`text-xl md:text-2xl font-bold mb-6 text-center ${darkMode ? "text-white" : "text-gray-800"}`}>Checkout</h2>
                 
                 <form onSubmit={handleCheckout} className="space-y-4">
                     <div>
-                        <label className={`block text-sm font-medium mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Delivery Address</label>
-                        <input type="text" name="address" required value={checkoutData.address} onChange={handleChange} className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-amber-500 outline-none transition ${darkMode ? "bg-slate-700 border-slate-600 text-white" : "bg-gray-50 border-gray-200"}`} placeholder="123 Tasty Street, Food City" />
+                        <label className={`block text-xs md:text-sm font-medium mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Delivery Address</label>
+                        <input type="text" name="address" required value={checkoutData.address} onChange={handleChange} className={`w-full p-2.5 md:p-3 rounded-xl border focus:ring-2 focus:ring-amber-500 outline-none transition text-sm md:text-base ${darkMode ? "bg-slate-700 border-slate-600 text-white" : "bg-gray-50 border-gray-200"}`} placeholder="123 Tasty Street, Food City" />
                     </div>
                     <div>
-                        <label className={`block text-sm font-medium mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Phone Number</label>
-                        <input type="text" name="phone" required value={checkoutData.phone} onChange={handleChange} className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-amber-500 outline-none transition ${darkMode ? "bg-slate-700 border-slate-600 text-white" : "bg-gray-50 border-gray-200"}`} placeholder="080 1234 5678" />
+                        <label className={`block text-xs md:text-sm font-medium mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Phone Number</label>
+                        <input type="text" name="phone" required value={checkoutData.phone} onChange={handleChange} className={`w-full p-2.5 md:p-3 rounded-xl border focus:ring-2 focus:ring-amber-500 outline-none transition text-sm md:text-base ${darkMode ? "bg-slate-700 border-slate-600 text-white" : "bg-gray-50 border-gray-200"}`} placeholder="080 1234 5678" />
                     </div>
                     <div>
-                        <label className={`block text-sm font-medium mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Payment Method</label>
-                        <select name="paymentMethod" value={checkoutData.paymentMethod} onChange={handleChange} className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-amber-500 outline-none transition ${darkMode ? "bg-slate-700 border-slate-600 text-white" : "bg-gray-50 border-gray-200"}`}>
+                        <label className={`block text-xs md:text-sm font-medium mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Payment Method</label>
+                        <select name="paymentMethod" value={checkoutData.paymentMethod} onChange={handleChange} className={`w-full p-2.5 md:p-3 rounded-xl border focus:ring-2 focus:ring-amber-500 outline-none transition text-sm md:text-base ${darkMode ? "bg-slate-700 border-slate-600 text-white" : "bg-gray-50 border-gray-200"}`}>
                             <option>Pay on Delivery</option>
                             <option>Pay Now (Card)</option>
                         </select>
                     </div>
 
-                    <div className="flex gap-4 mt-8">
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-8">
                         <button type="button" onClick={() => setShowCheckout(false)} className={`flex-1 py-3 rounded-xl font-medium transition ${darkMode ? "bg-white/10 hover:bg-white/20 text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-700"}`}>Cancel</button>
-                        <button type="submit" disabled={loading} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all">
-                            {loading ? "Processing..." : `Confirm Order (₦${total.toLocaleString()})`}
+                        <button type="submit" disabled={loading} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all text-sm md:text-base">
+                            {loading ? "Processing..." : `Confirm (₦${total.toLocaleString()})`}
                         </button>
                     </div>
                 </form>
-                {message && <p className="text-center mt-4 text-amber-500 font-medium">{message}</p>}
+                {message && <p className="text-center mt-4 text-amber-500 font-medium text-xs md:text-sm">{message}</p>}
             </div>
         </div>
       )}
 
       {/* My Orders Modal */}
       {showOrders && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowOrders(false)}></div>
-            <div className={`relative w-full max-w-2xl h-[80vh] rounded-3xl p-8 shadow-2xl flex flex-col ${darkMode ? "bg-slate-800" : "bg-white"}`}>
+            <div className={`relative w-full max-w-2xl h-[90vh] md:h-[80vh] rounded-2xl md:rounded-3xl p-5 md:p-8 shadow-2xl flex flex-col ${darkMode ? "bg-slate-800" : "bg-white"}`}>
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className={`text-2xl font-bold ${darkMode ? "text-white" : "text-gray-800"}`}>My Orders</h2>
+                    <h2 className={`text-xl md:text-2xl font-bold ${darkMode ? "text-white" : "text-gray-800"}`}>My Orders</h2>
                     <button onClick={() => setShowOrders(false)} className="text-gray-400 hover:text-red-500 text-2xl">✕</button>
                 </div>
 

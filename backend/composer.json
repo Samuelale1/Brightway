@@ -10,7 +10,7 @@
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "spatie/laravel-tail": "^4.5",
-        "laravel/reverb": "^1.0",
+        "pusher/pusher-php-server": "^7.2",
         "ext-pdo": "*",
         "ext-pdo_mysql": "*"
     },
@@ -53,7 +53,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74,#fbbf24\" \"php artisan serve --graceful\" \"php artisan queue:work --tries=1 --timeout=0\" \"php artisan reverb:start\" \"npm run dev --prefix ../frontend\" --names=server,queue,reverb,vite --kill-others-on-fail"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74,#fbbf24\" \"php artisan serve --no-reload\" \"php artisan queue:work --tries=1 --timeout=0\" \"npm run dev --prefix ../frontend\" --names=server,queue,vite --kill-others-on-fail"
         ],
         "test": [
             "@php artisan config:clear --ansi",

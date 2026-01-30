@@ -33,7 +33,7 @@ const Sales = () => {
     if (window.Echo) {
       console.log("[Sales] Subscribing to sales channel...");
       window.Echo.channel('sales')
-        .listen('OrderPlaced', (e) => {
+        .listen('.OrderPlaced', (e) => {
           console.log("[Sales] New order received via Echo:", e.order);
           const newNotif = {
             id: Date.now(),
